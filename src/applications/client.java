@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.SocketException;
 
 import services.DatagramService;
+import services.TTPService;
 import datatypes.Datagram;
 
 public class client {
@@ -35,6 +36,21 @@ public class client {
 		datagram.setDstaddr("127.0.0.1");
 		datagram.setDstport((short)Integer.parseInt(args[1]));
 		datagram.setSrcport((short)port);
+		
+		String sourceip;
+		String destinationip;
+		short source_p;
+		short destination_p;
+		Object data;
+		short checksum;
+		
+		sourceip = datagram.getSrcaddr();
+		destinationip = datagram.getDstaddr();
+		source_p = datagram.getSrcport();
+		destination_p = datagram.getDstport();
+		data = datagram.getData();
+		
+		checksum = TTPService.checksum(sourceip, destinationip, source_p, destination_p, data);
 		
 		ds.sendDatagram(datagram);
 		System.out.println("Sent datagram");
