@@ -5,6 +5,8 @@ package applications;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
 
 import services.DatagramService;
 import datatypes.Datagram;
@@ -30,17 +32,18 @@ public class server {
 	private static void run() throws IOException, ClassNotFoundException {
 
 		Datagram datagram;
-		
+//		List<String> reassemble = new ArrayList<String>();
 		while(true) {
 			datagram = ds.receiveDatagram();
-			System.out.println("Received datagram from " + datagram.getSrcaddr() + ":" + datagram.getSrcport() + " Data: " + datagram.getData());
-			Datagram ack = new Datagram();
+			System.out.println("Received datagram from " + datagram.getSrcaddr() + ":" + datagram.getSrcport() + " Data: " + datagram.getData().toString());
+		//	reassemble.add(datagram.getData().toString());
+		/*	Datagram ack = new Datagram();
 			ack.setSrcaddr(datagram.getDstaddr());
 			ack.setSrcport(datagram.getDstport());
 			ack.setDstaddr(datagram.getSrcaddr());
 			ack.setDstport(datagram.getSrcport());
 			ack.setData("ACK");
-			ds.sendDatagram(ack);
+			ds.sendDatagram(ack);*/
 		}
 	}
 

@@ -14,7 +14,7 @@ import datatypes.Datagram;
 public class client {
 
 	private static DatagramService ds;
-	
+	private static TTPService ts;
 	/**
 	 * @param args
 	 * @throws IOException 
@@ -28,10 +28,11 @@ public class client {
 		System.out.println("Starting client ...");
 		
 		int port = Integer.parseInt(args[0]);
-		ds = new DatagramService(port, 10);
+	//	ds = new DatagramService(port, 10);
+		ts = new TTPService();
 		
 		Datagram datagram = new Datagram();
-		datagram.setData("Hello World!");
+		//datagram.setData("Hello World!");
 		datagram.setSrcaddr("127.0.0.1");
 		datagram.setDstaddr("127.0.0.1");
 		datagram.setDstport((short)Integer.parseInt(args[1]));
@@ -49,14 +50,20 @@ public class client {
 		source_p = datagram.getSrcport();
 		destination_p = datagram.getDstport();
 		data = datagram.getData();
+		String destination_p1 = String.valueOf(destination_p);
+		String source_p1 = String.valueOf(source_p);
+//		checksum = TTPService.checksum(sourceip, destinationip, source_p, destination_p, data);
 		
-		checksum = TTPService.checksum(sourceip, destinationip, source_p, destination_p, data);
+		ts.send_data(destination_p1, source_p1, sourceip, destinationip);
 		
-		ds.sendDatagram(datagram);
-		System.out.println("Sent datagram");
+		//ds.sendDatagram(datagram);
+		//System.out.println("Sent datagram");
+		byte[] received_byte_array = ts.receive_data();
 		
-		datagram = ds.receiveDatagram();
-		System.out.println("Received " + datagram.getData());
+		//datagram = ds.receiveDatagram();
+		//System.out.println("Received " + datagram.getData());
+		System.out.println("Received " + received_byte_array);
+//		System.out.println("Received " + received_byte_array.toString());
 	}
 	
 	private static void printUsage() {
