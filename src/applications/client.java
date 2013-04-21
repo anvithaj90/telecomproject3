@@ -9,12 +9,13 @@ import java.net.SocketException;
 
 import services.DatagramService;
 import services.TTPService;
+import services.TTPclient;
 import datatypes.Datagram;
 
 public class client {
 
 	private static DatagramService ds;
-	private static TTPService ts;
+	private static TTPclient ts;
 	/**
 	 * @param args
 	 * @throws IOException 
@@ -29,7 +30,7 @@ public class client {
 		
 		int port = Integer.parseInt(args[0]);
 	//	ds = new DatagramService(port, 10);
-		ts = new TTPService();
+		ts = new TTPclient();
 		
 		Datagram datagram = new Datagram();
 		//datagram.setData("Hello World!");
@@ -54,13 +55,13 @@ public class client {
 		String source_p1 = String.valueOf(source_p);
 //		checksum = TTPService.checksum(sourceip, destinationip, source_p, destination_p, data);
 		
-		ts.send_data(destination_p1, source_p1, sourceip, destinationip);
-		
+	//	ts.send_data("Hello World!",destination_p1, source_p1, sourceip, destinationip);
+		ts.connection_open(destination_p1, source_p1, sourceip, destinationip);
 		//ds.sendDatagram(datagram);
 		//System.out.println("Sent datagram");
-		byte[] received_byte_array = ts.receive_data();
+		byte[] received_byte_array = ts.receive_data(source_p1.toString());
 		
-		//datagram = ds.receiveDatagram();
+		
 		//System.out.println("Received " + datagram.getData());
 		System.out.println("Received " + received_byte_array);
 //		System.out.println("Received " + received_byte_array.toString());
