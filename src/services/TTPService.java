@@ -80,21 +80,7 @@ public class TTPService {
 		int i = 4;
 		int j = 0;
 		
-		//if not end of file
-	/*	while(data[5] != 0x02) 
-		{
-			data1[i] = data[6];
-			data[i+1] = data[7];
-			i += 2;
-		}
-		data1[i] = data[6];
-		data[i+1] = data[7];
-		*/
-		/*while(data[i] != 0)
-		{
-			data1[j] = data[i];
-			i++; j++;
-		}*/
+		
 		if(data1[4]==0x01)
 		{
 			/* Generate a random number for the other side and set the 

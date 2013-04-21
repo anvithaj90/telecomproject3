@@ -13,10 +13,14 @@ import datatypes.Datagram;
 
 public class TTPclient {
 	private int isn_client;
+	private int isn_data;
 	public TTPclient(){
 
 	}
 	String payload= "Hello World!";
+	byte[] payload_byte_array = new byte[50]; 
+	byte[] data_header = new byte[5];
+
 	int seq_num = 0;
 	int ack = 0;
 	char flag = 'S';
@@ -68,6 +72,7 @@ public class TTPclient {
 
 		byte[] data = (byte[])datagram.getData();	//data from the datagram
 		byte[] data1 = new byte[50]; //byte array for data
+
 		short checksum;
 		checksum = datagram.getChecksum();
 		System.out.println("recieved "+checksum);
@@ -86,11 +91,28 @@ public class TTPclient {
 			src_port = String.valueOf(datagram.getDstport());
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 			
+			/*
+			 * start sending data along with 'C' flag set to indicate the start 
+			 * of data. Generate a new sequence number called isn_data for the 
+			 * data.
+			 */
+			Random r = new Random();
+			isn_data = r.nextInt(65535);
+			byte[] combined_data = new byte[data_header.length + payload_byte_array.length];
+			for(int i=0;i<payload.length();i+=2){
+				  if(payload.length()>2){
+					  data_header = create_header(isn_data, received_seq_num + 1, 'C');
+					  payload_byte_array = create_payload(payload.substring(i, i+2));
+				  }
+				  System.arraycopy(data_header, 0, combined_data, 0, data_header.length);
+				  System.arraycopy(payload_byte_array, 0, combined_data, data_header.length, payload_byte_array.length);			
+				  send_data(combined_data, dest_port, src_port, src_ip, dest_ip);
+			}
 		}
-		
 		System.out.println(data1.toString());
 		return data1;
 	}
+	
 	public void connection_close() { 
 		
 	}
@@ -104,6 +126,8 @@ public class TTPclient {
 	//S == SYN
 		if(flag == 'S')
 			header[4] = 0x01;
+		if(flag == 'C')
+			header[4] = 0xA;
 		// F == FIN end of file
 		if(flag == 'A')
 			header[4] = 0x08;
