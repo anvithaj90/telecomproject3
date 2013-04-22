@@ -20,8 +20,9 @@ public class client {
 	 * @param args
 	 * @throws IOException 
 	 * @throws ClassNotFoundException 
+	 * @throws InterruptedException 
 	 */
-	public static void main(String[] args) throws IOException, ClassNotFoundException {
+	public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
 		if(args.length != 2) {
 			printUsage();
 		}

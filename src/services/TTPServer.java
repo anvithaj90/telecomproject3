@@ -13,8 +13,12 @@ import datatypes.Datagram;
 
 public class TTPServer {
 	private int isn_server;
+	private int isn_data;
 	public TTPServer(){
 	}
+	String payload= "Hello World!";
+	byte[] payload_byte_array = new byte[50]; 
+	byte[] data_header = new byte[5];
 
 	int seq_num = 0;
 	int ack = 0;
@@ -82,7 +86,40 @@ public class TTPServer {
 
 		else if(data[4] == 8)
 		{
+			String dest_port;
+			String src_port;
+			String src_ip;
+			String dest_ip;
+			dest_ip = datagram.getSrcaddr();
+			src_ip = datagram.getDstaddr();
+			dest_port = String.valueOf(datagram.getSrcport());
+			src_port = String.valueOf(datagram.getDstport());
 			System.out.println("Connection is established, start sending data");
+			/*
+			 * start sending data along with 'C' flag set to indicate the start 
+			 * of data. Generate a new sequence number called isn_data for the 
+			 * data.
+			 */
+			Random r = new Random();
+			isn_data = r.nextInt(65535);
+			byte[] combined_data = new byte[data_header.length + payload_byte_array.length];
+			for(int i=0;i<payload.length()-2;i+=2){
+				  if(payload.length()>2){
+					  data_header = create_header(isn_data, 0 , 'D');
+					  payload_byte_array = create_payload(payload.substring(i, i+2));
+				  }
+				  System.arraycopy(data_header, 0, combined_data, 0, data_header.length);
+				  System.arraycopy(payload_byte_array, 0, combined_data, data_header.length, payload_byte_array.length);			
+				  send_data(combined_data, dest_port, src_port, src_ip, dest_ip);
+			}
+			/*
+			 * For the last packet add the FIN flag
+			 */
+			 data_header = create_header(isn_data, 0 , 'F');
+			 payload_byte_array = create_payload(payload.substring(payload.length()-2, payload.length()));
+			 System.arraycopy(data_header, 0, combined_data, 0, data_header.length);
+			 System.arraycopy(payload_byte_array, 0, combined_data, data_header.length, payload_byte_array.length);			
+			 send_data(combined_data, dest_port, src_port, src_ip, dest_ip);
 		}
 		
 		System.out.println(data1.toString());
@@ -101,6 +138,9 @@ public class TTPServer {
 	//S == SYN
 		if(flag == 'S')
 			header[4] = 0x01;
+		//start of file	
+		if(flag == 'D')
+			header[4] = 0x10;
 		// F == FIN end of file
 		if(flag == 'A')
 			header[4] = 0x08;
