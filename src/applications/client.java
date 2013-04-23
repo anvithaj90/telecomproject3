@@ -33,7 +33,7 @@ public class client {
 	//	ds = new DatagramService(port, 10);
 		ts = new TTPclient();
 		
-		Datagram datagram = new Datagram();
+	/*	Datagram datagram = new Datagram();
 		//datagram.setData("Hello World!");
 		datagram.setSrcaddr("127.0.0.1");
 		datagram.setDstaddr("127.0.0.1");
@@ -54,18 +54,14 @@ public class client {
 		data = datagram.getData();
 		String destination_p1 = String.valueOf(destination_p);
 		String source_p1 = String.valueOf(source_p);
-//		checksum = TTPService.checksum(sourceip, destinationip, source_p, destination_p, data);
+*/
 		
-	//	ts.send_data("Hello World!",destination_p1, source_p1, sourceip, destinationip);
-		ts.connection_open(destination_p1, source_p1, sourceip, destinationip);
-		//ds.sendDatagram(datagram);
-		//System.out.println("Sent datagram");
-		byte[] received_byte_array = ts.receive_data(source_p1.toString());
-		
-		
-		//System.out.println("Received " + datagram.getData());
+	/*	ts.connection_open(destination_p1, source_p1, sourceip, destinationip);*/
+		ts.connection_open(String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), "127.0.0.1", "127.0.0.1");
+	/*	byte[] received_byte_array = ts.receive_data(source_p1.toString());*/
+		byte[] received_byte_array = ts.receive_data(String.valueOf((short)port));
 		System.out.println("Received " + received_byte_array);
-//		System.out.println("Received " + received_byte_array.toString());
+
 	}
 	
 	private static void printUsage() {

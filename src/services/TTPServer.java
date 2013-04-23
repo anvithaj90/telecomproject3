@@ -1,10 +1,6 @@
 package services;
 
 import java.io.IOException;
-import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Random;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
@@ -16,7 +12,8 @@ public class TTPServer {
 	private int isn_data;
 	public TTPServer(){
 	}
-	String payload= "Hello World!";
+//	String payload= "Hello World!";
+	String payload = null;
 	byte[] payload_byte_array = new byte[50]; 
 	byte[] data_header = new byte[5];
 
@@ -25,7 +22,7 @@ public class TTPServer {
 	char flag = 'S';
 	
 	private static DatagramService ds;
-	
+
 	public void send_data(byte[] data, String dest_port, String src_port, String src_ip, String dest_ip) throws IOException	{
 			
 		Datagram datagram = new Datagram();
@@ -59,7 +56,7 @@ public class TTPServer {
 		byte[] data1 = new byte[50]; //byte array for data
 		short checksum;
 		checksum = datagram.getChecksum();	
-		System.out.println("received"+checksum);
+		System.out.println("received checksum = "+checksum+"flag = "+data[4]);
 		if(data[4] == 1)
 		{
 			/* Generate a random number for the other side and set the 
@@ -86,6 +83,37 @@ public class TTPServer {
 
 		else if(data[4] == 8)
 		{
+			String src_port;
+			src_port = String.valueOf(datagram.getDstport());
+			System.out.println("Connection is established, start sending data");
+			byte[] data2=data;
+		/*	while(true)
+			{
+				 data2 = receive_data(src_port);
+				 System.out.println(data2[5]);
+			}*/
+		}
+		else if(data[4] == 32)
+		{
+			/*int i;
+			int j = 0;
+			byte[] new_data = new byte[data.length];
+			
+			for(i=5;i<data.length;i++,j++)
+			{
+				new_data[j] = data[i];
+			}
+			String received_file = new String(new_data);
+		    System.out.println(received_file);*/
+	//	    byte[] data_to_send = fs.getfile_from_ftp(received_file);
+		    //payload_byte_array = data_to_send;
+		    System.out.println("came here");
+			return data;
+		   // String temp = new String(data_to_send);
+		   // payload = temp;
+		}
+		else if(data[4]==16)
+		{
 			String dest_port;
 			String src_port;
 			String src_ip;
@@ -94,7 +122,6 @@ public class TTPServer {
 			src_ip = datagram.getDstaddr();
 			dest_port = String.valueOf(datagram.getSrcport());
 			src_port = String.valueOf(datagram.getDstport());
-			System.out.println("Connection is established, start sending data");
 			/*
 			 * start sending data along with 'C' flag set to indicate the start 
 			 * of data. Generate a new sequence number called isn_data for the 
@@ -112,6 +139,7 @@ public class TTPServer {
 				  System.arraycopy(payload_byte_array, 0, combined_data, data_header.length, payload_byte_array.length);			
 				  send_data(combined_data, dest_port, src_port, src_ip, dest_ip);
 			}
+			
 			/*
 			 * For the last packet add the FIN flag
 			 */
@@ -121,9 +149,8 @@ public class TTPServer {
 			 System.arraycopy(payload_byte_array, 0, combined_data, data_header.length, payload_byte_array.length);			
 			 send_data(combined_data, dest_port, src_port, src_ip, dest_ip);
 		}
-		
 		System.out.println(data1.toString());
-		return data1;
+		return data;
 	}
 	public void connection_close() { 
 		

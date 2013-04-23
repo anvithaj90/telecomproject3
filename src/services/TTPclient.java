@@ -1,7 +1,6 @@
 package services;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -15,10 +14,11 @@ public class TTPclient {
 	public TTPclient(){
 
 	}
-	
+	boolean value = false;
 	int seq_num = 0;
 	int ack = 0;
 	char flag = 'S';
+	int open=0;
 	
 	private static DatagramService ds;
 	
@@ -35,9 +35,27 @@ public class TTPclient {
 		datagram.setDstport(Short.parseShort(dest_port));
 		datagram.setSrcport(Short.parseShort(src_port));
 		System.out.println(datagram.toString());
-		ds.sendDatagram(datagram);
-		
+		ds.sendDatagram(datagram);		
 	}
+	public void send_file_name(String filename, String dest_port, String src_port, String src_ip, String dest_ip) throws IOException, ClassNotFoundException, InterruptedException {
+		// TODO Auto-generated method stub
+		/*
+		 * Set the D flag to indicate that client is sending the filename
+		 */
+		byte[] header = new byte[5];
+		byte[] filename_byte_array = filename.getBytes();
+		byte[] combined_filename = new byte[header.length + filename_byte_array.length];
+		header = create_header(isn_client,0,'E');
+		System.arraycopy(header, 0, combined_filename, 0, header.length);
+		System.arraycopy(filename_byte_array, 0, combined_filename, header.length, filename_byte_array.length);	
+		
+		//sends the filename
+		send_data(combined_filename, dest_port, src_port, src_ip, dest_ip);
+		System.out.println("sent file name");
+		// call receive file to receive the file
+		receive_file(src_port);
+	}
+	
 	public void send_data(byte[] received_data, String dest_port, String src_port, String src_ip, String dest_ip) throws IOException	{
 
 		Datagram datagram = new Datagram();
@@ -48,7 +66,7 @@ public class TTPclient {
 		datagram.setSrcport(Short.parseShort(src_port));
 		short checksum = calculate_checksum(datagram);
 		datagram.setChecksum(checksum);
-		System.out.println("sent"+checksum);
+		System.out.println("sent checksum = "+checksum+"flag = "+received_data[4]);
 		System.out.println(datagram.toString());
 		ds.sendDatagram(datagram);
 		}
@@ -66,16 +84,17 @@ public class TTPclient {
 		Datagram datagram = ds.receiveDatagram();
 
 		byte[] data = (byte[])datagram.getData();	//data from the datagram
-		byte[] data1 = new byte[50]; //byte array for data
+	//	byte[] data1 = new byte[50]; //byte array for data
 
 		short checksum;
 		checksum = datagram.getChecksum();
-		System.out.println("recieved "+checksum);
+		System.out.println("recieved "+checksum + "flag = "+data[4]);
 		if(data[4] == 9)
 		{
 			byte[] header = new byte[5]; //byte array to store the flag
 			int received_seq_num = header[0] << 8 | header[1];
 			header = create_header(isn_client, received_seq_num + 1, 'A'); // create a header with only ack set
+			open+=1;
 			String dest_port;
 			String src_port;
 			String src_ip;
@@ -85,7 +104,7 @@ public class TTPclient {
 			dest_port = String.valueOf(datagram.getSrcport());
 			src_port = String.valueOf(datagram.getDstport());
 			send_data(header, dest_port, src_port, src_ip, dest_ip);	
-			receive_file(src_port);
+			value = true;
 		}
 	
 		System.out.println(data.toString());
@@ -136,7 +155,7 @@ public class TTPclient {
 		}
 
 	}
-	
+
 	public void connection_close() { 
 		
 	}
@@ -160,13 +179,19 @@ public class TTPclient {
 			header[4] = 0x09;
 		else if(flag == 'F')
 			header[4] = 0x02;
+		//file name
+		else if(flag == 'E')
+			header[4] = 0x20;
 		//C == close connection
 		else if(flag == 'C')
 			header[4] = 0x04;
 		return header;
 		
 	}
-	
+	public int give_open_var()
+	{
+		return open;
+	}
 	public byte[] create_payload(String payload) {
 		byte[] payload_byte = payload.getBytes(); 	    	
 		return payload_byte;
