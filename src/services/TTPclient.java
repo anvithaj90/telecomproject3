@@ -114,7 +114,7 @@ public class TTPclient {
 			/*
 			 * converting the filename byte array into string
 			 */
-			for(i=5;i<7;i++,j++)
+			for(i=5;i<data.length;i++,j++)
 			{
 				reassembled_file.add(data[i]);
 				new_data[j] = data[i];
@@ -146,6 +146,9 @@ public class TTPclient {
 	private String receive_file(String src_port) throws ClassNotFoundException, IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		byte[] temp = receive_data(src_port);
+		
+		//send ack for the received packet
+	//	send_data(temp[], dest_port, src_port, src_ip, dest_ip)
 		List<Byte> reassembled_file = new ArrayList<Byte>();
 		int i = 0;
 		/*
@@ -155,9 +158,14 @@ public class TTPclient {
 		{
 			if(temp[4]==16)
 			{
-				reassembled_file.add(temp[5]);
-				reassembled_file.add(temp[6]);
+				int l=0;
+				for(l = 5; l<temp.length;l++)
+				{
+					reassembled_file.add(temp[l]);
+				}
 			}
+			
+			//listening for the next data packet
 			temp = receive_data(src_port);
 		}
 		/*
@@ -165,8 +173,11 @@ public class TTPclient {
 		 */
 		if(temp[4]==2)
 		{
-			reassembled_file.add(temp[5]);
-			reassembled_file.add(temp[6]);
+			int l=0;
+			for(l = 5; l<temp.length;l++)
+			{
+				reassembled_file.add(temp[l]);
+			}
 		}
 		/*
 		 * Convert the List to a Byte array 

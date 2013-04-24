@@ -28,7 +28,7 @@ public class Ftpclient {
 		String receivedfile = ts.send_file_name(filename,String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), "127.0.0.1", "127.0.0.1");
 		System.out.println("received at client->" + receivedfile);
 		byte dataToWrite[] = receivedfile.getBytes();
-		String client_file_path = new String("clientfiles\\" + filename);
+		String client_file_path = new String("clientfiles/" + filename);
 		FileOutputStream out = new FileOutputStream(client_file_path);
 		out.write(dataToWrite);
 		out.close();

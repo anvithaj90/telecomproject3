@@ -1,7 +1,11 @@
 package services;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
@@ -10,21 +14,22 @@ import datatypes.Datagram;
 public class TTPServer {
 	private int isn_server;
 	private int isn_data;
+	private HashMap<Integer, byte[]> file_map = new HashMap<Integer, byte[]>();
 	public TTPServer(){
 	}
-//	String payload= "Hello World!";
+	//	String payload= "Hello World!";
 	String payload = null;
-	byte[] payload_byte_array = new byte[90]; 
+	byte[] payload_byte_array = new byte[1296]; 
 	byte[] data_header = new byte[5];
 
 	int seq_num = 0;
 	int ack = 0;
 	char flag = 'S';
-	
+
 	private static DatagramService ds;
 
 	public void send_data(byte[] data, String dest_port, String src_port, String src_ip, String dest_ip) throws IOException	{
-			
+
 		Datagram datagram = new Datagram();
 		datagram.setData(data);
 		datagram.setSrcaddr(src_ip);
@@ -51,9 +56,9 @@ public class TTPServer {
 		}
 		Datagram datagram = new Datagram();
 		datagram = ds.receiveDatagram();
-		
+
 		byte[] data = (byte[]) datagram.getData();	//data from the datagram
-		byte[] data1 = new byte[50]; //byte array for data
+		byte[] data1 = new byte[1296]; //byte array for data
 		short checksum;
 		checksum = datagram.getChecksum();	
 		System.out.println("received checksum = "+checksum+"flag = "+data[4]);
@@ -69,7 +74,7 @@ public class TTPServer {
 			byte[] header = new byte[5]; //byte array to store the flag
 			int received_seq_num = header[0] << 8 | header[1];
 			header = create_header(isn_server, received_seq_num + 1, 'B'); // create a header with both syn and ack set
-			
+
 			String dest_port;
 			String src_port;
 			String src_ip;
@@ -86,104 +91,81 @@ public class TTPServer {
 			String src_port;
 			src_port = String.valueOf(datagram.getDstport());
 			System.out.println("Connection is established, start sending data");
-			byte[] data2=data;
-		/*	while(true)
-			{
-				 data2 = receive_data(src_port);
-				 System.out.println(data2[5]);
-			}*/
+		/*	byte[] received_data = (byte[]) datagram.getData();
+			int received_seq_num = received_data[0] << 8 | received_data[1];
+			System.out.println(received_seq_num);*/
 		}
 		else if(data[4] == 32)
 		{
-			
-		    System.out.println("came here");
+
+			System.out.println("came here where flag is 32 in ttp server");
 			return data;
-		   // String temp = new String(data_to_send);
-		   // payload = temp;
+
 		}
-		else if(data[4]==16)
-		{
-			/*String dest_port;
-			String src_port;
-			String src_ip;
-			String dest_ip;
-			dest_ip = datagram.getSrcaddr();
-			src_ip = datagram.getDstaddr();
-			dest_port = String.valueOf(datagram.getSrcport());
-			src_port = String.valueOf(datagram.getDstport());
-			/*
-			 * start sending data along with 'C' flag set to indicate the start 
-			 * of data. Generate a new sequence number called isn_data for the 
-			 * data.
-			 */
-			/*Random r = new Random();
-			isn_data = r.nextInt(65535);
-			byte[] combined_data = new byte[data_header.length + payload_byte_array.length];
-			for(int i=0;i<payload.length()-2;i+=2){
-				  if(payload.length()>2){
-					  data_header = create_header(isn_data, 0 , 'D');
-					  payload_byte_array = create_payload(payload.substring(i, i+2));
-				  }
-				  System.arraycopy(data_header, 0, combined_data, 0, data_header.length);
-				  System.arraycopy(payload_byte_array, 0, combined_data, data_header.length, payload_byte_array.length);			
-				  send_data(combined_data, dest_port, src_port, src_ip, dest_ip);
-			}
-			
-			/*
-			 * For the last packet add the FIN flag
-			 */
-			
-			/* data_header = create_header(isn_data, 0 , 'F');
-			 payload_byte_array = create_payload(payload.substring(payload.length()-2, payload.length()));
-			 System.arraycopy(data_header, 0, combined_data, 0, data_header.length);
-			 System.arraycopy(payload_byte_array, 0, combined_data, data_header.length, payload_byte_array.length);			
-			 send_data(combined_data, dest_port, src_port, src_ip, dest_ip);*/
-		}
+
 		System.out.println(data1.toString());
 		return data;
 	}
 	public void connection_close() { 
-		
+
 	}
-	
-	
-	public void send_file(byte[] data_full) throws IOException { 
-	//	byte[] header = create_header(isn_server, 0, 'D');
-		byte[] combined = new byte[data_header.length + data_full.length];
+
+
+	public void send_file(byte[] data_full) throws IOException, ClassNotFoundException { 
+		//byte[] combined = new byte[data_header.length + data_full.length];
+		byte[] combined = new byte[1300];
 		String broken_payload = new String(data_full);
-		int rem = broken_payload.length()%2;
+		int rem = broken_payload.length()%1295;
 		if(rem == 0)
-			rem+=2;
+			rem+=1295;
 		int i;
-		for(i=0;i<data_full.length-2;i+=2){
-			  if(broken_payload.length()>2){
-				  data_header = create_header(isn_server, 0 , 'D');
-				  payload_byte_array = create_payload(broken_payload.substring(i, i+2));
-				  isn_server++;
-			  }
-			  System.arraycopy(data_header, 0, combined, 0, data_header.length);
-			  System.arraycopy(payload_byte_array, 0, combined, data_header.length, payload_byte_array.length);
-		
-		send_data(combined, "2222", "4444", "127.0.0.1", "127.0.0.1");
+		isn_server++;
+		for(i=0;i<data_full.length-1295;i+=1295){
+			if(broken_payload.length()>1295){
+				data_header = create_header(isn_server, 0 , 'D');
+				payload_byte_array = create_payload(broken_payload.substring(i, i+1295));
+				isn_server++;
+
+				System.arraycopy(data_header, 0, combined, 0, data_header.length);
+				System.arraycopy(payload_byte_array, 0, combined, data_header.length, payload_byte_array.length);
+			/*
+			 * put the fragmented data into the Hash map
+			 */
+				add_to_hashmap(isn_server, combined);
+				//Printing Hashmap
+				Set set = file_map.entrySet();
+				Iterator it =set.iterator();
+				while(it.hasNext())
+				{
+					Map.Entry me = (Map.Entry)it.next();
+					System.out.print(me.getKey() + " : ");
+					System.out.println(me.getValue());
+				}
+				send_data(combined, "2222", "4444", "127.0.0.1", "127.0.0.1");
+			/*	byte[] temp = receive_data("4444");
+				while(true)
+				{
+					 temp = receive_data("4444");
+				}*/
+			}
 		}
 		data_header = create_header(isn_server, 0 , 'F');
 		payload_byte_array = create_payload(broken_payload.substring(i, i+rem));
 		isn_server++;
-	  
-	  System.arraycopy(data_header, 0, combined, 0, data_header.length);
-	  System.arraycopy(payload_byte_array, 0, combined, data_header.length, payload_byte_array.length);
-
-	  send_data(combined, "2222", "4444", "127.0.0.1", "127.0.0.1");
+		byte[] combined_last = new byte[data_header.length + payload_byte_array.length];
+		System.arraycopy(data_header, 0, combined_last, 0, data_header.length);
+		System.arraycopy(payload_byte_array, 0, combined_last, data_header.length, payload_byte_array.length);
+		send_data(combined_last, "2222", "4444", "127.0.0.1", "127.0.0.1");
 	}
-	
-	
+
+
 	public byte[] create_header(int seq_num, int ack, char flag) {
 		byte[] header = new byte[5];
 		header[0] = (byte)(seq_num & 0xFF);
 		header[1] = (byte)((seq_num >> 8) & 0xFF);
 		header[2] = (byte)(ack & 0xFF);
 		header[3] = (byte)((ack >> 8) & 0xFF);
-	//S == SYN
+		//S == SYN
 		if(flag == 'S')
 			header[4] = 0x01;
 		//start of file	
@@ -201,10 +183,14 @@ public class TTPServer {
 			header[4] = 0x04;
 		return header;	
 	}
-	
+
 	public byte[] create_payload(String payload) {
 		byte[] payload_byte = payload.getBytes(); 	    	
 		return payload_byte;
 	}
 	
+	public void add_to_hashmap(Integer isn, byte[] hash_data)
+	{
+		file_map.put(isn, hash_data);
+	}
 }
