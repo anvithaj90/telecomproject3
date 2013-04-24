@@ -14,7 +14,7 @@ public class TTPServer {
 	}
 //	String payload= "Hello World!";
 	String payload = null;
-	byte[] payload_byte_array = new byte[50]; 
+	byte[] payload_byte_array = new byte[90]; 
 	byte[] data_header = new byte[5];
 
 	int seq_num = 0;
@@ -95,18 +95,7 @@ public class TTPServer {
 		}
 		else if(data[4] == 32)
 		{
-			/*int i;
-			int j = 0;
-			byte[] new_data = new byte[data.length];
 			
-			for(i=5;i<data.length;i++,j++)
-			{
-				new_data[j] = data[i];
-			}
-			String received_file = new String(new_data);
-		    System.out.println(received_file);*/
-	//	    byte[] data_to_send = fs.getfile_from_ftp(received_file);
-		    //payload_byte_array = data_to_send;
 		    System.out.println("came here");
 			return data;
 		   // String temp = new String(data_to_send);
@@ -114,7 +103,7 @@ public class TTPServer {
 		}
 		else if(data[4]==16)
 		{
-			String dest_port;
+			/*String dest_port;
 			String src_port;
 			String src_ip;
 			String dest_ip;
@@ -127,7 +116,7 @@ public class TTPServer {
 			 * of data. Generate a new sequence number called isn_data for the 
 			 * data.
 			 */
-			Random r = new Random();
+			/*Random r = new Random();
 			isn_data = r.nextInt(65535);
 			byte[] combined_data = new byte[data_header.length + payload_byte_array.length];
 			for(int i=0;i<payload.length()-2;i+=2){
@@ -143,11 +132,12 @@ public class TTPServer {
 			/*
 			 * For the last packet add the FIN flag
 			 */
-			 data_header = create_header(isn_data, 0 , 'F');
+			
+			/* data_header = create_header(isn_data, 0 , 'F');
 			 payload_byte_array = create_payload(payload.substring(payload.length()-2, payload.length()));
 			 System.arraycopy(data_header, 0, combined_data, 0, data_header.length);
 			 System.arraycopy(payload_byte_array, 0, combined_data, data_header.length, payload_byte_array.length);			
-			 send_data(combined_data, dest_port, src_port, src_ip, dest_ip);
+			 send_data(combined_data, dest_port, src_port, src_ip, dest_ip);*/
 		}
 		System.out.println(data1.toString());
 		return data;
@@ -155,6 +145,37 @@ public class TTPServer {
 	public void connection_close() { 
 		
 	}
+	
+	
+	public void send_file(byte[] data_full) throws IOException { 
+	//	byte[] header = create_header(isn_server, 0, 'D');
+		byte[] combined = new byte[data_header.length + data_full.length];
+		String broken_payload = new String(data_full);
+		int rem = broken_payload.length()%2;
+		if(rem == 0)
+			rem+=2;
+		int i;
+		for(i=0;i<data_full.length-2;i+=2){
+			  if(broken_payload.length()>2){
+				  data_header = create_header(isn_server, 0 , 'D');
+				  payload_byte_array = create_payload(broken_payload.substring(i, i+2));
+				  isn_server++;
+			  }
+			  System.arraycopy(data_header, 0, combined, 0, data_header.length);
+			  System.arraycopy(payload_byte_array, 0, combined, data_header.length, payload_byte_array.length);
+		
+		send_data(combined, "2222", "4444", "127.0.0.1", "127.0.0.1");
+		}
+		data_header = create_header(isn_server, 0 , 'F');
+		payload_byte_array = create_payload(broken_payload.substring(i, i+rem));
+		isn_server++;
+	  
+	  System.arraycopy(data_header, 0, combined, 0, data_header.length);
+	  System.arraycopy(payload_byte_array, 0, combined, data_header.length, payload_byte_array.length);
+
+	  send_data(combined, "2222", "4444", "127.0.0.1", "127.0.0.1");
+	}
+	
 	
 	public byte[] create_header(int seq_num, int ack, char flag) {
 		byte[] header = new byte[5];

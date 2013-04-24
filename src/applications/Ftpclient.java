@@ -1,5 +1,6 @@
 package applications;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import services.TTPclient;
 
@@ -23,11 +24,14 @@ public class Ftpclient {
 		ts.connection_open(String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), "127.0.0.1", "127.0.0.1");
 	//	Thread.sleep(1000);
 		byte[] received_byte_array = ts.receive_data(String.valueOf((short)port));
-		System.out.println("Received " + received_byte_array + "Flag=" + received_byte_array[4]);
-		ts.send_file_name(filename,String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), "127.0.0.1", "127.0.0.1");
-		
-	//	byte[] received_byte_array = ts.receive_data(String.valueOf((short)port));
-
+		System.out.println("Received at client" + received_byte_array + "Flag=" + received_byte_array[4]);
+		String receivedfile = ts.send_file_name(filename,String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), "127.0.0.1", "127.0.0.1");
+		System.out.println("received at client->" + receivedfile);
+		byte dataToWrite[] = receivedfile.getBytes();
+		String client_file_path = new String("clientfiles\\" + filename);
+		FileOutputStream out = new FileOutputStream(client_file_path);
+		out.write(dataToWrite);
+		out.close();
 	}
 	
 	private static void printUsage() {

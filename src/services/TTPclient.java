@@ -11,6 +11,7 @@ import datatypes.Datagram;
 
 public class TTPclient {
 	private int isn_client;
+	public List<Byte> reassembled_file = new ArrayList<Byte>();
 	public TTPclient(){
 
 	}
@@ -37,7 +38,7 @@ public class TTPclient {
 		System.out.println(datagram.toString());
 		ds.sendDatagram(datagram);		
 	}
-	public void send_file_name(String filename, String dest_port, String src_port, String src_ip, String dest_ip) throws IOException, ClassNotFoundException, InterruptedException {
+	public String send_file_name(String filename, String dest_port, String src_port, String src_ip, String dest_ip) throws IOException, ClassNotFoundException, InterruptedException {
 		// TODO Auto-generated method stub
 		/*
 		 * Set the D flag to indicate that client is sending the filename
@@ -53,7 +54,8 @@ public class TTPclient {
 		send_data(combined_filename, dest_port, src_port, src_ip, dest_ip);
 		System.out.println("sent file name");
 		// call receive file to receive the file
-		receive_file(src_port);
+		String sendingfile = receive_file(src_port);
+		return sendingfile;
 	}
 	
 	public void send_data(byte[] received_data, String dest_port, String src_port, String src_ip, String dest_ip) throws IOException	{
@@ -82,10 +84,8 @@ public class TTPclient {
 	public byte[] receive_data(String port) throws ClassNotFoundException, IOException, InterruptedException {
 		
 		Datagram datagram = ds.receiveDatagram();
-
-		byte[] data = (byte[])datagram.getData();	//data from the datagram
-	//	byte[] data1 = new byte[50]; //byte array for data
-
+		
+		byte[] data = (byte[])datagram.getData();	//data from the datagram		
 		short checksum;
 		checksum = datagram.getChecksum();
 		System.out.println("recieved "+checksum + "flag = "+data[4]);
@@ -106,12 +106,44 @@ public class TTPclient {
 			send_data(header, dest_port, src_port, src_ip, dest_ip);	
 			value = true;
 		}
+		if(data[4] == 16)
+		{
+			int i;
+			int j = 0;
+			byte[] new_data = new byte[(data.length)-4];
+			/*
+			 * converting the filename byte array into string
+			 */
+			for(i=5;i<7;i++,j++)
+			{
+				reassembled_file.add(data[i]);
+				new_data[j] = data[i];
+			}
+			String received_file = new String(new_data);
+		    System.out.println("received file data:" + received_file);
+		}
+		if(data[4] == 4)
+		{
+			int i;
+			int j = 0;
+			byte[] new_data = new byte[(data.length)-4];
+			/*
+			 * converting the filename byte array into string
+			 */
+			for(i=5;i<data.length;i++,j++)
+			{
+				new_data[j] = data[i];
+				reassembled_file.add(data[i]);
+			}
+			return data;
+		}
+		
 	
 		System.out.println(data.toString());
 		return data;
 	}
 	
-	private void receive_file(String src_port) throws ClassNotFoundException, IOException, InterruptedException {
+	private String receive_file(String src_port) throws ClassNotFoundException, IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		byte[] temp = receive_data(src_port);
 		List<Byte> reassembled_file = new ArrayList<Byte>();
@@ -145,15 +177,9 @@ public class TTPclient {
 			reassembled_file_byte_array[i] = current;
 			i++;
 		}
-		
-		/*
-		 * Print the byte array 
-		 */
-		for(i=0;i<reassembled_file_byte_array.length;i+=2)
-		{
-			System.out.print(Character.toString((char)reassembled_file_byte_array[i]) + Character.toString((char)reassembled_file_byte_array[i+1]));
-		}
-
+		String reassembled_string = new String(reassembled_file_byte_array);
+		System.out.println("Reassembled string -> " + reassembled_string);
+		return reassembled_string;
 	}
 
 	public void connection_close() { 
