@@ -19,7 +19,7 @@ public class Ftpclient {
 		
 		System.out.println("Starting FTP client ...");
 		int port = Integer.parseInt(args[0]);
-		String filename = "hi.txt";
+		String filename = "hi.txt	";
 		ts = new TTPclient();
 		ts.connection_open(String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), "127.0.0.1", "127.0.0.1");
 	//	Thread.sleep(1000);

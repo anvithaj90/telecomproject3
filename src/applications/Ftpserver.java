@@ -1,4 +1,4 @@
-package applications;
+	package applications;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,7 +23,6 @@ public class Ftpserver {
 		System.out.println("Starting Server ...");
 		
 		int port = Integer.parseInt(args[0]);
-	//	ds = new DatagramService(port, 10);
 		ts = new TTPServer();
 		run();
 	}
@@ -56,6 +55,12 @@ public class Ftpserver {
 			     */
 			    
 			}
+			else if(received_byte_array[4] == 8)
+			{
+				
+				Thread newThread = new Thread(new TTPSend(received_byte_array,ts,received_byte_array[3]<<8 | received_byte_array[2]));
+				newThread.start();
+			}
 			System.out.println("received data" + received_byte_array.toString());
 		}
 	}
@@ -64,16 +69,11 @@ public class Ftpserver {
 		// TODO Auto-generated method stub
 		System.out.println("Received filename at the server" + received_file);
 		File new_file = new File(received_file);	
-	//	File file = new File("c:/EventItemBroker.java");
-
         byte[] data_to_send = new byte[(int) new_file.length()];
         try {
               FileInputStream fileInputStream = new FileInputStream(new_file);
               fileInputStream.read(data_to_send);
               fileInputStream.close();
-       /*   for (int i = 0; i < data_to_send.length; i++) {
-                          System.out.print((char)data_to_send[i]);
-               }*/
          } catch (FileNotFoundException e) {
                      System.out.println("File Not Found.");
                      e.printStackTrace();
@@ -82,7 +82,9 @@ public class Ftpserver {
                   System.out.println("Error Reading The File.");
                    e1.printStackTrace();
          }
-		ts.send_file(data_to_send);
+        Thread newThread = new Thread(new TTPSend(data_to_send,ts,0));
+		newThread.start();
+	//	ts.send_file(data_to_send);
 		
 	}
 
@@ -91,4 +93,37 @@ public class Ftpserver {
 		System.exit(-1);
 	}
 
+}
+
+class TTPSend implements Runnable {
+	private TTPServer server;
+	private byte[] data;
+	private int seq_num;
+	public TTPSend(byte[] data_to_send, TTPServer ts, int seq_num) {
+		// TODO Auto-generated constructor stub
+		this.server = ts;
+		this.data = data_to_send;
+		this.seq_num = seq_num;
+	}
+	
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		try {
+			if(data[4] == 8)
+			{
+				server.send_file(null, seq_num);
+			}
+			else
+			{
+				server.send_file(data, seq_num);
+			}
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 }

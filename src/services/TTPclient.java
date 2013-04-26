@@ -26,7 +26,7 @@ public class TTPclient {
 	public void connection_open(String dest_port, String src_port, String src_ip, String dest_ip) throws IOException {
 		ds = new DatagramService(Integer.parseInt(src_port), 10);
 		Random r = new Random();
-		isn_client = r.nextInt(65535);
+		isn_client = r.nextInt(40000);
 		byte[] header = new byte[5];
 		header = create_header(isn_client,0,'S');	
 		Datagram datagram = new Datagram();
@@ -53,6 +53,7 @@ public class TTPclient {
 		//sends the filename
 		send_data(combined_filename, dest_port, src_port, src_ip, dest_ip);
 		System.out.println("sent file name");
+		
 		// call receive file to receive the file
 		String sendingfile = receive_file(src_port);
 		return sendingfile;
@@ -92,7 +93,8 @@ public class TTPclient {
 		if(data[4] == 9)
 		{
 			byte[] header = new byte[5]; //byte array to store the flag
-			int received_seq_num = header[0] << 8 | header[1];
+			int received_seq_num = (int)(header[0] | header[1] << 8);
+			System.out.println("isn client value is: "+ isn_client);
 			header = create_header(isn_client, received_seq_num + 1, 'A'); // create a header with only ack set
 			open+=1;
 			String dest_port;
@@ -108,6 +110,14 @@ public class TTPclient {
 		}
 		if(data[4] == 16)
 		{
+			String dest_port;
+			String src_port;
+			String src_ip;
+			String dest_ip;
+			dest_ip = datagram.getSrcaddr();
+			src_ip = datagram.getDstaddr();
+			dest_port = String.valueOf(datagram.getSrcport());
+			src_port = String.valueOf(datagram.getDstport());
 			int i;
 			int j = 0;
 			byte[] new_data = new byte[(data.length)-4];
@@ -121,6 +131,17 @@ public class TTPclient {
 			}
 			String received_file = new String(new_data);
 		    System.out.println("received file data:" + received_file);
+			/*
+			 * send ack for the received packet
+			 * create a header with only ack set
+			 */
+		    isn_client++;
+		    byte[] header = new byte[5]; //byte array to store the flag
+			int received_seq_num = (int)(data[0] | data[1] << 8 );
+			System.out.println("isn client value is: "+ isn_client);
+			header = create_header(isn_client+1, received_seq_num, 'A');
+		//	isn_client++;
+			send_data(header, dest_port, src_port, src_ip, dest_ip);
 		}
 		if(data[4] == 4)
 		{
@@ -146,9 +167,6 @@ public class TTPclient {
 	private String receive_file(String src_port) throws ClassNotFoundException, IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		byte[] temp = receive_data(src_port);
-		
-		//send ack for the received packet
-	//	send_data(temp[], dest_port, src_port, src_ip, dest_ip)
 		List<Byte> reassembled_file = new ArrayList<Byte>();
 		int i = 0;
 		/*

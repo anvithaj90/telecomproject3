@@ -14,10 +14,13 @@ import datatypes.Datagram;
 public class TTPServer {
 	private int isn_server;
 	private int isn_data;
+	int window_size = 3; 
+	int baseSeqNum = 0;
+
 	private HashMap<Integer, byte[]> file_map = new HashMap<Integer, byte[]>();
 	public TTPServer(){
 	}
-	//	String payload= "Hello World!";
+
 	String payload = null;
 	byte[] payload_byte_array = new byte[1296]; 
 	byte[] data_header = new byte[5];
@@ -70,10 +73,11 @@ public class TTPServer {
 			 *  Increment the syn value of the prev  and 
 			 */
 			Random r = new Random();
-			isn_server = r.nextInt(65535);
+			isn_server = r.nextInt(40000);
+			baseSeqNum = isn_server;
 			byte[] header = new byte[5]; //byte array to store the flag
-			int received_seq_num = header[0] << 8 | header[1];
-			header = create_header(isn_server, received_seq_num + 1, 'B'); // create a header with both syn and ack set
+			int received_seq_num = (int)(header[0] | header[1] << 8);
+			header = create_header(baseSeqNum, received_seq_num + 1, 'B'); // create a header with both syn and ack set
 
 			String dest_port;
 			String src_port;
@@ -91,9 +95,10 @@ public class TTPServer {
 			String src_port;
 			src_port = String.valueOf(datagram.getDstport());
 			System.out.println("Connection is established, start sending data");
-		/*	byte[] received_data = (byte[]) datagram.getData();
-			int received_seq_num = received_data[0] << 8 | received_data[1];
-			System.out.println(received_seq_num);*/
+			byte[] received_data = (byte[]) datagram.getData();
+			int received_seq_num = (int)(received_data[0] | received_data[1] << 8);
+			System.out.println("Ack received for data is->" + received_seq_num);
+			return received_data;
 		}
 		else if(data[4] == 32)
 		{
@@ -111,51 +116,61 @@ public class TTPServer {
 	}
 
 
-	public void send_file(byte[] data_full) throws IOException, ClassNotFoundException { 
-		//byte[] combined = new byte[data_header.length + data_full.length];
-		byte[] combined = new byte[1300];
-		String broken_payload = new String(data_full);
-		int rem = broken_payload.length()%1295;
-		if(rem == 0)
-			rem+=1295;
-		int i;
-		isn_server++;
-		for(i=0;i<data_full.length-1295;i+=1295){
-			if(broken_payload.length()>1295){
-				data_header = create_header(isn_server, 0 , 'D');
-				payload_byte_array = create_payload(broken_payload.substring(i, i+1295));
-				isn_server++;
-
-				System.arraycopy(data_header, 0, combined, 0, data_header.length);
-				System.arraycopy(payload_byte_array, 0, combined, data_header.length, payload_byte_array.length);
-			/*
-			 * put the fragmented data into the Hash map
-			 */
-				add_to_hashmap(isn_server, combined);
-				//Printing Hashmap
-				Set set = file_map.entrySet();
-				Iterator it =set.iterator();
-				while(it.hasNext())
-				{
-					Map.Entry me = (Map.Entry)it.next();
-					System.out.print(me.getKey() + " : ");
-					System.out.println(me.getValue());
-				}
-				send_data(combined, "2222", "4444", "127.0.0.1", "127.0.0.1");
-			/*	byte[] temp = receive_data("4444");
-				while(true)
-				{
-					 temp = receive_data("4444");
-				}*/
+	public void send_file(byte[] data_full, int seq_num) throws IOException, ClassNotFoundException { 
+		if(data_full == null)
+		{
+			boolean contains = file_map.containsKey(seq_num);
+			if(contains)
+			{
+				baseSeqNum++;
+				file_map.remove(seq_num);						
 			}
 		}
-		data_header = create_header(isn_server, 0 , 'F');
-		payload_byte_array = create_payload(broken_payload.substring(i, i+rem));
-		isn_server++;
-		byte[] combined_last = new byte[data_header.length + payload_byte_array.length];
-		System.arraycopy(data_header, 0, combined_last, 0, data_header.length);
-		System.arraycopy(payload_byte_array, 0, combined_last, data_header.length, payload_byte_array.length);
-		send_data(combined_last, "2222", "4444", "127.0.0.1", "127.0.0.1");
+		else
+		{
+			byte[] combined = new byte[1300];
+			String broken_payload = new String(data_full);
+			int rem = broken_payload.length()%1295;
+			if(rem == 0)
+				rem+=1295;
+			int i;
+			int received_seq_num =(int) ( data_full[0] | data_full[1] << 8);
+			baseSeqNum++;
+			for(i=0;i<data_full.length-1295;i+=1295){
+				if(broken_payload.length()>1295){
+					System.out.println("isn server value is: "+ baseSeqNum);
+					data_header = create_header(baseSeqNum, received_seq_num+1 , 'D');
+					payload_byte_array = create_payload(broken_payload.substring(i, i+1295));
+					baseSeqNum++;
+
+					System.arraycopy(data_header, 0, combined, 0, data_header.length);
+					System.arraycopy(payload_byte_array, 0, combined, data_header.length, payload_byte_array.length);
+				/*
+				 * put the fragmented data into the Hash map
+				 */
+					add_to_hashmap(baseSeqNum, combined);
+					//Printing Hashmap
+					Set set = file_map.entrySet();
+					Iterator it =set.iterator();
+					while(it.hasNext())
+					{
+						Map.Entry me = (Map.Entry)it.next();
+						System.out.print(me.getKey() + " : ");
+						System.out.println(me.getValue());
+					}
+					send_data(combined, "2222", "4444", "127.0.0.1", "127.0.0.1");
+					
+				}
+			}
+			data_header = create_header(baseSeqNum, 0 , 'F');
+			payload_byte_array = create_payload(broken_payload.substring(i, i+rem));
+			baseSeqNum++;
+			byte[] combined_last = new byte[data_header.length + payload_byte_array.length];
+			System.arraycopy(data_header, 0, combined_last, 0, data_header.length);
+			System.arraycopy(payload_byte_array, 0, combined_last, data_header.length, payload_byte_array.length);
+			send_data(combined_last, "2222", "4444", "127.0.0.1", "127.0.0.1");
+			
+		}
 	}
 
 
@@ -194,3 +209,4 @@ public class TTPServer {
 		file_map.put(isn, hash_data);
 	}
 }
+
