@@ -2,6 +2,8 @@ package applications;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+
 import services.TTPclient;
 
 public class Ftpclient {
@@ -11,15 +13,17 @@ public class Ftpclient {
 	 * @throws IOException 
 	 * @throws ClassNotFoundException 
 	 * @throws InterruptedException 
+	 * @throws NoSuchAlgorithmException 
+	 * @throws NumberFormatException 
 	 */
-	public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+	public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException, NumberFormatException, NoSuchAlgorithmException {
 		if(args.length != 2) {
 			printUsage();
 		}
 		
 		System.out.println("Starting FTP client ...");
 		int port = Integer.parseInt(args[0]);
-		String filename = "hi.txt	";
+		String filename = "hi.txt";
 		ts = new TTPclient();
 		ts.connection_open(String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), "127.0.0.1", "127.0.0.1");
 	//	Thread.sleep(1000);
