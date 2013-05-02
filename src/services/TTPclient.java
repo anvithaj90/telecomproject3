@@ -92,9 +92,32 @@ public class TTPclient {
 		Datagram datagram = ds.receiveDatagram();
 		
 		byte[] data = (byte[])datagram.getData();	//data from the datagram		
-		short checksum;
-		checksum = datagram.getChecksum();
-//		System.out.println("recieved "+checksum + "flag = "+data[4]);
+		short received_checksum;
+		received_checksum = datagram.getChecksum();
+		short cal_checksum = calculate_checksum(datagram);
+		System.out.println("^^^^^^^^^^^calculated checksum is" + cal_checksum + "^^^^^^^received checksum is" + received_checksum);
+		if(received_checksum != cal_checksum)
+		{
+			/*
+			 * checksum not equal so resend data
+			 */
+			byte[] header = new byte[8]; //byte array to store the flag
+			int received_seq_num = header[3] << 24 | (header[2] & 0xFF) << 16 | (header[1] & 0xFF) << 8 | (header[0] & 0xFF);
+			System.out.println("&*&**&*&*&*seq number at client is: "+ isn_client);
+			System.out.println("&*&*&*&*&*&seq number recieved from server is : "+ received_seq_num);
+			header = create_header(isn_client, received_seq_num, 'A'); // create a header with only ack set
+			String dest_port;
+			String src_port;
+			String src_ip;
+			String dest_ip;
+			dest_ip = datagram.getSrcaddr();
+			src_ip = datagram.getDstaddr();
+			dest_port = String.valueOf(datagram.getSrcport());
+			src_port = String.valueOf(datagram.getDstport());
+			System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^resend the data checksum error");
+			send_data(header, dest_port, src_port, src_ip, dest_ip);	
+			
+		}
 		if(data[8] == 9)
 		{
 			byte[] header = new byte[8]; //byte array to store the flag
