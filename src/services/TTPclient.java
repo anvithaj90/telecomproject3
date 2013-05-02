@@ -98,11 +98,13 @@ public class TTPclient {
 		if(data[8] == 9)
 		{
 			byte[] header = new byte[8]; //byte array to store the flag
-			int received_seq_num = (int)(header[0] | header[1] << 8 | header[2] <<16 | header[3] << 24);
-			System.out.println("isn client value is: "+ isn_client);
-			last_ack = data[3] << 24 | (data[2] & 0xFF) << 16 | (data[1] & 0xFF) << 8 | (data[0] & 0xFF);
-			header = create_header(isn_client, received_seq_num + 1, 'A'); // create a header with only ack set
-			open+=1;
+			int received_seq_num = header[3] << 24 | (header[2] & 0xFF) << 16 | (header[1] & 0xFF) << 8 | (header[0] & 0xFF);
+			System.out.println("&*&**&*&*&*seq number at client is: "+ isn_client);
+			System.out.println("&*&*&*&*&*&seq number recieved from server is : "+ received_seq_num);
+			isn_client++;
+			//last_ack = data[7] << 24 | (data[6] & 0xFF) << 16 | (data[5] & 0xFF) << 8 | (data[4] & 0xFF);
+			header = create_header(isn_client+1, received_seq_num + 1, 'A'); // create a header with only ack set
+		//	open+=1;
 			String dest_port;
 			String src_port;
 			String src_ip;
@@ -143,7 +145,10 @@ public class TTPclient {
 			 */
 		    isn_client++;
 		    byte[] header = new byte[9]; //byte array to store the flag
-			int received_seq_num = (int)(data[0] | data[1] << 8 | data[2] << 16 | data[3] << 24);
+			int received_seq_num = data[3] << 24 | (data[2] & 0xFF) << 16 | (data[1] & 0xFF) << 8 | (data[0] & 0xFF);
+			//last_ack = data[7] << 24 | (data[6] & 0xFF) << 16 | (data[5] & 0xFF) << 8 | (data[4] & 0xFF);
+			System.out.println("&*&**&*&*&*seq number at client is: "+ isn_client);
+			System.out.println("&*&*&*&*&*&seq number recieved from server is : "+ received_seq_num);
 			System.out.println("isn client value is: "+ isn_client);
 			header = create_header(isn_client, received_seq_num, 'A');
 	//		isn_client++;
@@ -195,17 +200,20 @@ public class TTPclient {
 		 * Loop till the Finish flag is set
 		 */
 		int received_seq =temp[3] << 24 | (temp[2] & 0xFF) << 16 | (temp[1] & 0xFF) << 8 | (temp[0] & 0xFF);
+		last_ack = received_seq;
 		while(temp[8] != 2 && temp[8] != 64)
 		{
-			if(temp[8]==16 && received_seq == last_ack+1)
+			received_seq =temp[3] << 24 | (temp[2] & 0xFF) << 16 | (temp[1] & 0xFF) << 8 | (temp[0] & 0xFF);
+			
+			if(temp[8]==16 && received_seq == last_ack)
 			{
 				int l=0;
 				
 				for(l = 9; l<temp.length;l++)
 				{
 					reassembled_file.add(temp[l]);
-					last_ack++;
 				}
+				last_ack++;
 			}
 			
 			//listening for the next data packet
@@ -214,7 +222,8 @@ public class TTPclient {
 		/*
 		 * Add the byte that has Finish flag set
 		 */
-		if(temp[8]==2 && received_seq == last_ack+1)
+		received_seq =temp[3] << 24 | (temp[2] & 0xFF) << 16 | (temp[1] & 0xFF) << 8 | (temp[0] & 0xFF);
+		if(temp[8]==2 && received_seq == last_ack)
 		{
 			int l=0;
 			for(l = 9; l<temp.length;l++)
@@ -222,6 +231,7 @@ public class TTPclient {
 				reassembled_file.add(temp[l]);
 			}
 			temp = receive_data(src_port);
+			last_ack++;
 		}
 		
 	
@@ -249,6 +259,7 @@ public class TTPclient {
 			i++;
 		}
 		String reassembled_string = new String(reassembled_file_byte_array);
+		System.out.println("$$$$$$$$$$$received file: "+ reassembled_string);
 		MessageDigest md = MessageDigest.getInstance("MD5");
 		byte[] thedigest = md.digest(reassembled_file_byte_array);
 		if(Arrays.equals(md5_value, thedigest))

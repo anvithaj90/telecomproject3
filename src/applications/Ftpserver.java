@@ -109,8 +109,9 @@ class TTPSend implements Runnable {
 	public void run() {
 		// TODO Auto-generated method stub
 		try {
-			if(data[8] == 8)
+			if(data.length == 9)
 			{
+				if(data[8] == 8)
 				server.send_file(null, seq_num);
 			}
 			else
