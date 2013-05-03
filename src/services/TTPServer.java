@@ -24,7 +24,7 @@ public class TTPServer {
 	}
 
 	String payload = null;
-	byte[] payload_byte_array = new byte[1296]; 
+	byte[] payload_byte_array = new byte[1294]; 
 	byte[] data_header = new byte[9];
 
 	int seq_num = 0;
@@ -63,7 +63,7 @@ public class TTPServer {
 		datagram = ds.receiveDatagram();
 
 		byte[] data = (byte[]) datagram.getData();	//data from the datagram
-		byte[] data1 = new byte[1296]; //byte array for data
+		byte[] data1 = new byte[1294]; //byte array for data
 		short checksum;
 		checksum = datagram.getChecksum();	
 	//	System.out.println("received checksum = "+checksum+"flag = "+data[4]);
@@ -107,12 +107,24 @@ public class TTPServer {
 			return data;
 
 		}
-
+		else if(data[8] == 2)
+		{
+			
+			byte[] received_data = (byte[]) datagram.getData();
+			int received_seq_num = received_data[3] << 24 | (received_data[2] & 0xFF) << 16 | (received_data[1] & 0xFF) << 8 | (received_data[0] & 0xFF);
+			data_header = create_header(isn_server, received_seq_num + 1, 'V');
+			send_data(data_header,  "2222", "4444", "127.0.0.1", "127.0.0.1");
+			data_header = create_header(isn_server, 0, 'F');
+			send_data(data_header,  "2222", "4444", "127.0.0.1", "127.0.0.1");
+		}
+		else if(data[8] == 5)
+		{
+			file_map.clear();
+			System.out.println("connection closed at server");
+		}
+	
 	//	System.out.println(data1.toString());
 		return data;
-	}
-	public void connection_close() { 
-
 	}
 
 
@@ -128,7 +140,7 @@ public class TTPServer {
 		}
 		else
 		{
-			byte[] combined = new byte[1300];
+			byte[] combined = new byte[1294];
 			String broken_payload = new String(data_full);
 			int rem = broken_payload.length()%1285;
 			if(rem == 0)
@@ -149,7 +161,9 @@ public class TTPServer {
 				 * put the fragmented data into the Hash map
 				 */
 					add_to_hashmap(baseSeqNum, combined);
-					//Printing Hashmap
+					
+					send_data(combined, "2222", "4444", "127.0.0.1", "127.0.0.1");
+					/*Printing Hashmap
 					Set set = file_map.entrySet();
 					Iterator it =set.iterator();
 					while(it.hasNext())
@@ -157,8 +171,8 @@ public class TTPServer {
 						Map.Entry me = (Map.Entry)it.next();
 						System.out.print(me.getKey() + " : ");
 						System.out.println(me.getValue());
-					}
-					send_data(combined, "2222", "4444", "127.0.0.1", "127.0.0.1");
+					}*/
+				
 					
 				}
 			}
@@ -221,6 +235,8 @@ public class TTPServer {
 			header[8] = 0x04;
 		else if(flag == 'M')
 			header[8] = 0x40;
+		else if(flag == 'V')
+			header[8] = 0x05;
 		return header;	
 	}
 

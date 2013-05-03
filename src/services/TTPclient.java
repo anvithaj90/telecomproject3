@@ -25,7 +25,7 @@ public class TTPclient {
 	int ack = 0;
 	char flag = 'S';
 	int open=0;
-	
+	byte[] data_header = new byte[9];
 	private static DatagramService ds;
 	
 	public void connection_open(String dest_port, String src_port, String src_ip, String dest_ip) throws IOException {
@@ -208,7 +208,18 @@ public class TTPclient {
 	//		System.out.println(data.toString());
 			return data;
 		}
-		
+		else if(data[8] == 2)
+		{
+			System.out.println("reached client fin++++++++++++++++++++++++++");
+			byte[] received_data = (byte[]) datagram.getData();
+			int received_seq_num = received_data[3] << 24 | (received_data[2] & 0xFF) << 16 | (received_data[1] & 0xFF) << 8 | (received_data[0] & 0xFF);
+			data_header = create_header(isn_client, received_seq_num + 1, 'V');
+			send_data(data_header,  "4444", "2222", "127.0.0.1", "127.0.0.1");
+		}
+		else if(data[8] == 5)
+		{
+			System.out.println("connection closed at client");
+		}
 	
 	//	System.out.println(data.toString());
 		return data;
@@ -298,8 +309,10 @@ public class TTPclient {
 		return reassembled_string;
 	}
 
-	public void connection_close() { 
-		
+	public void connection_close() throws IOException { 
+		byte[] header = new byte[8]; //byte array to store the flag
+		header = create_header(isn_client, last_ack, 'F'); // create a header with only ack set
+		send_data(header, "4444", "2222", "127.0.0.1", "127.0.0.1");
 	}
 	
 	public byte[] create_header(int seq_num, int ack, char flag) {
@@ -331,6 +344,8 @@ public class TTPclient {
 		//C == close connection
 		else if(flag == 'C')
 			header[8] = 0x04;
+		else if(flag == 'V')
+			header[8] = 0x05;
 		return header;
 		
 	}

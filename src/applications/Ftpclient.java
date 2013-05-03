@@ -36,6 +36,8 @@ public class Ftpclient {
 		FileOutputStream out = new FileOutputStream(client_file_path);
 		out.write(dataToWrite);
 		out.close();
+		ts.connection_close();
+		
 	}
 	
 	private static void printUsage() {
