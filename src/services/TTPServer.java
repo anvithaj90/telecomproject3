@@ -34,14 +34,17 @@ public class TTPServer {
 	int check = 0;
 	private int baseSeqNum = 0;
 	private HashMap<Integer, byte[]> file_map = new HashMap<Integer, byte[]>();
-	private int timer_value = 0;
+	private int timer_value = 8000;
 	public TTPServer(){
 		System.out.println("Enter the Window Size : ");
 	    Scanner scanIn = new Scanner(System.in);
 	    window_size = scanIn.nextInt();
 	    System.out.println("Enter the Timer value : ");	
 	    timer_value = scanIn.nextInt();
+	    timer_value *= 1000;
 	    scanIn.close(); 
+
+		timer.setDelay(timer_value);
 	}
 	
 	/** The resend data. */
@@ -62,23 +65,11 @@ public class TTPServer {
 		}
 	};
 
-
-	/** The timer. */
 	Timer timer = new Timer(timer_value,resendData);
-	
-	/** The payload. */
 	String payload = null;
-	
-	/** The payload_byte_array. */
 	byte[] payload_byte_array = new byte[1294]; 
-	
-	/** The data_header. */
 	byte[] data_header = new byte[9];
-
-	/** The seq_num. */
 	int seq_num = 0;
-	
-	/** The ack. */
 	int ack = 0;
 	
 	/** The flag. */
@@ -124,14 +115,14 @@ private short calculate_checksum(Datagram datagram) {
 		
 		// TODO Auto-generated method stub
 //		Checksum checksum = new CRC32();  
-		byte[] buf = (byte[])datagram.getData();
-	    int length = buf.length;
+		byte[] buffer = (byte[])datagram.getData();
+	    int length = buffer.length;
 	        int i = 0;
 	        int sum = 0;
 	        while (length > 0) {
-	            sum += (buf[i++]&0xff) << 8;
+	            sum += (buffer[i++]&0xff) << 8;
 	            if ((--length)==0) break;
-	            sum += (buf[i++]&0xff);
+	            sum += (buffer[i++]&0xff);
 	            --length;
 	        }
 	        return (short) ((~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF);
@@ -250,7 +241,6 @@ private short calculate_checksum(Datagram datagram) {
 				}
 
 				baseSeqNum++;
-				//nextSeqNum = seq_num;
 				for(i=0;i<window_size;i++){
 					if(nextSeqNum <= baseSeqNum + window_size)
 					{
@@ -261,8 +251,7 @@ private short calculate_checksum(Datagram datagram) {
 							send_data(file_map.get(nextSeqNum),  dest_port, src_port, src_ip, dest_ip);
 							if(baseSeqNum == nextSeqNum)
 								timer.start();
-						}
-						
+						}		
 						nextSeqNum++;		
 					}	
 				}
@@ -355,27 +344,26 @@ private short calculate_checksum(Datagram datagram) {
 		header[5] = (byte)((ack >> 8) & 0xFF);
 		header[6] = (byte)((ack >> 16) & 0xFF);
 		header[7] = (byte)((ack >> 24) & 0xFF);
-		//S == SYN
-		if(flag == 'S')
-			header[8] = 0x01;
-		//start of file	
-		if(flag == 'D')
-			header[8] = 0x10;
-		// F == FIN end of file
-		if(flag == 'A')
-			header[8] = 0x08;
-		//B == Both 
-		if(flag == 'B')
-			header[8] = 0x09;
-		else if(flag == 'F')
-			header[8] = 0x02;
-		//C == close connection
-		else if(flag == 'C')
-			header[8] = 0x04;
-		else if(flag == 'M')
-			header[8] = 0x40;
-		else if(flag == 'V')
-			header[8] = 0x05;
+		switch(flag)
+		{
+			case 'S': header[8] = 0x01; 	
+			break;
+			case 'D': header[8] = 0x10;
+			break;
+			case 'A': header[8] = 0x08;
+			break;
+			case 'B': header[8] = 0x09;
+			break;
+			case 'F': header[8] = 0x02;
+			break;
+			case 'M': header[8] = 0x40;
+			break;
+			case 'C': header[8] = 0x04;
+			break;
+			case 'V': header[8] = 0x05;
+			break;
+			default: break;
+		}	
 		return header;	
 	}
 

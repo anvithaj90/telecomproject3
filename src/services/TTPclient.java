@@ -1,6 +1,3 @@
-/*
- * 
- */
 package services;
 
 import java.io.IOException;
@@ -13,9 +10,7 @@ import java.util.Random;
 import datatypes.Datagram;
 
 // TODO: Auto-generated Javadoc
-/**
- * The Class TTPclient.
- */
+
 public class TTPclient {
 	private int isn_client;
 	private int last_ack;
@@ -31,6 +26,13 @@ public class TTPclient {
 	String src_port = "2222";
 	String src_ip = "127.0.0.1";
 	String dest_ip = "127.0.0.1";
+	private static int MAX_RANDOM_NUMBER = 40000;
+	private static int HEADER_SIZE = 9;
+	private static int SYN_ACK = 9;
+	private static int MD5 = 64;
+	private static int FILENAME = 32;
+	private static int DATA = 16;
+	private static int LAST_PACKET = 2;
 	public TTPclient(){
 
 	}
@@ -49,8 +51,8 @@ public class TTPclient {
 	public void connection_open(String dest_port, String src_port, String src_ip, String dest_ip) throws IOException {
 		ds = new DatagramService(Integer.parseInt(src_port), 10);
 		Random r = new Random();
-		isn_client = r.nextInt(40000);
-		byte[] header = new byte[9];
+		isn_client = r.nextInt(MAX_RANDOM_NUMBER);
+		byte[] header = new byte[HEADER_SIZE];
 		header = create_header(isn_client,0,'S');	
 		Datagram datagram = new Datagram();
 		datagram.setData(header);
@@ -58,7 +60,6 @@ public class TTPclient {
 		datagram.setDstaddr(dest_ip);
 		datagram.setDstport(Short.parseShort(dest_port));
 		datagram.setSrcport(Short.parseShort(src_port));
-		//		System.out.println(datagram.toString());
 		ds.sendDatagram(datagram);		
 	}
 
@@ -81,7 +82,7 @@ public class TTPclient {
 		/*
 		 * Set the D flag to indicate that client is sending the filename
 		 */
-		byte[] header = new byte[9];
+		byte[] header = new byte[HEADER_SIZE];
 		byte[] filename_byte_array = filename.getBytes();
 		byte[] combined_filename = new byte[header.length + filename_byte_array.length];
 		header = create_header(isn_client,0,'E');
@@ -90,8 +91,6 @@ public class TTPclient {
 
 		//sends the filename
 		send_data(combined_filename, dest_port, src_port, src_ip, dest_ip);
-		//	System.out.println("sent file name");
-
 		// call receive file to receive the file
 		String sendingfile = receive_file(src_port);
 		return sendingfile;
@@ -117,8 +116,6 @@ public class TTPclient {
 		datagram.setSrcport(Short.parseShort(src_port));
 		short checksum = calculate_checksum(datagram);
 		datagram.setChecksum(checksum);
-		//		System.out.println("sent checksum = "+checksum+"flag = "+received_data[4]);
-		//		System.out.println(datagram.toString());
 		ds.sendDatagram(datagram);
 	}
 
@@ -131,21 +128,17 @@ public class TTPclient {
 	private short calculate_checksum(Datagram datagram) {
 
 		// TODO Auto-generated method stub
-		byte[] buf = (byte[])datagram.getData();
-		int length = buf.length;
+		byte[] buffer = (byte[])datagram.getData();
+		int length = buffer.length;
 		int i = 0;
 		int sum = 0;
 		while (length > 0) {
-			sum += (buf[i++]&0xff) << 8;
+			sum += (buffer[i++]&0xff) << 8;
 			if ((--length)==0) break;
-			sum += (buf[i++]&0xff);
+			sum += (buffer[i++]&0xff);
 			--length;
 		}
 		return (short) ((~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF);
-
-		/*		checksum.update(d,0,(int)d.length);   
-		short value = (short) checksum.getValue(); //this is the real checksum
-		return value;*/		
 	}
 
 	/**
@@ -160,111 +153,75 @@ public class TTPclient {
 	public byte[] receive_data(String port) throws ClassNotFoundException, IOException, InterruptedException {
 
 		Datagram datagram = ds.receiveDatagram();
+		byte[] data = (byte[])datagram.getData();	//data from the datagram
 
-		byte[] data = (byte[])datagram.getData();	//data from the datagram		
-		short checksum;
-		checksum = datagram.getChecksum();
+		dest_ip = datagram.getSrcaddr();
+		src_ip = datagram.getDstaddr();
+		dest_port = String.valueOf(datagram.getSrcport());
+		src_port = String.valueOf(datagram.getDstport());
 		short received_checksum = datagram.getChecksum();
 		short cal_checksum = calculate_checksum(datagram);
+		byte[] header = new byte[HEADER_SIZE];
+		
 		if(received_checksum != cal_checksum)
 		{
-			byte[] header = new byte[9]; //byte array to store the flag
-			int received_seq_num = (int)(header[0] | header[1] << 8 | header[2] << 16| header[3] << 24);
+			//byte array to store the flag
 			header = create_header(isn_client, last_ack, 'A'); // create a header with both syn and ack set
-
-			String dest_port;
-			String src_port;
-			String src_ip;
-			String dest_ip;
-			dest_ip = datagram.getSrcaddr();
-			src_ip = datagram.getDstaddr();
-			dest_port = String.valueOf(datagram.getSrcport());
-			src_port = String.valueOf(datagram.getDstport());
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 		}
 
-		//		System.out.println("recieved "+checksum + "flag = "+data[4]);
-		if(data[8] == 9)
-		{
-			byte[] header = new byte[8]; //byte array to store the flag
-			int received_seq_num = header[3] << 24 | (header[2] & 0xFF) << 16 | (header[1] & 0xFF) << 8 | (header[0] & 0xFF);
+		if(data[8] == SYN_ACK)
+		{	 //byte array to store the flag
+			int received_seq_num = byte_to_int(header, 3, 2, 1, 0);
 			isn_client++;
-			//last_ack = data[7] << 24 | (data[6] & 0xFF) << 16 | (data[5] & 0xFF) << 8 | (data[4] & 0xFF);
-			header = create_header(isn_client+1, received_seq_num + 1, 'A'); // create a header with only ack set
-			String dest_port;
-			String src_port;
-			String src_ip;
-			String dest_ip;
-			dest_ip = datagram.getSrcaddr();
-			src_ip = datagram.getDstaddr();
-			dest_port = String.valueOf(datagram.getSrcport());
-			src_port = String.valueOf(datagram.getDstport());
+			header = create_header(isn_client+1, received_seq_num + 1, 'A'); // create a header with only ack set			
 			send_data(header, dest_port, src_port, src_ip, dest_ip);	
 			value = true;
 		}
-		if(data[8] == 16)
+		if(data[8] == DATA)
 		{
-			String dest_port;
-			String src_port;
-			String src_ip;
-			String dest_ip;
-			dest_ip = datagram.getSrcaddr();
-			src_ip = datagram.getDstaddr();
-			dest_port = String.valueOf(datagram.getSrcport());
-			src_port = String.valueOf(datagram.getDstport());
 			int i;
 			int j = 0;
 			byte[] new_data = new byte[(data.length)-8];
 			/*
 			 * converting the filename byte array into string
 			 */
-			for(i=9;i<data.length;i++,j++)
+			for(i=HEADER_SIZE;i<data.length;i++,j++)
 			{
 				reassembled_file.add(data[i]);
 				new_data[j] = data[i];
 			}
-			//		String received_file = new String(new_data);
-			//	    System.out.println("received file data:" + received_file);
 			/*
 			 * send ack for the received packet
 			 * create a header with only ack set
 			 */
 			isn_client++;
-			byte[] header = new byte[9]; //byte array to store the flag
-			int received_seq_num = data[3] << 24 | (data[2] & 0xFF) << 16 | (data[1] & 0xFF) << 8 | (data[0] & 0xFF);
+			//byte array to store the flag
+			int received_seq_num = byte_to_int(data, 3, 2, 1, 0);
 			System.out.println("&*&*&*&*&*&seq number recieved from server is : "+ received_seq_num);
 			header = create_header(isn_client, received_seq_num, 'A');
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 		}
-		if(data[8] == 2)
+		if(data[8] == LAST_PACKET)
 		{
-			String dest_port;
-			String src_port;
-			String src_ip;
-			String dest_ip;
-			dest_ip = datagram.getSrcaddr();
-			src_ip = datagram.getDstaddr();
-			dest_port = String.valueOf(datagram.getSrcport());
-			src_port = String.valueOf(datagram.getDstport());
 			int i;
 			int j = 0;
 			byte[] new_data = new byte[(data.length)-8];
 
-			for(i=9;i<data.length;i++,j++)
+			for(i=HEADER_SIZE;i<data.length;i++,j++)
 			{
 				new_data[j] = data[i];
 				reassembled_file.add(data[i]);
 			}
 			isn_client++;
-			byte[] header = new byte[9]; //byte array to store the flag
-			int received_seq_num = data[3] << 24 | (data[2] & 0xFF) << 16 | (data[1] & 0xFF) << 8 | (data[0] & 0xFF);
+	//byte array to store the flag
+			int received_seq_num = byte_to_int(data, 3, 2, 1, 0);
 			System.out.println("&*&*&*&*&*&seq number recieved from server is : "+ received_seq_num);
-			//System.out.println("isn client value is: "+ isn_client);
 			header = create_header(isn_client, received_seq_num, 'A');
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 			return data;
 		}
-		if(data[8] == 32)
+		if(data[8] == FILENAME)
 		{
 			int i;
 			int j = 0;
@@ -272,7 +229,7 @@ public class TTPclient {
 			/*
 			 * converting the filename byte array into string
 			 */
-			for(i=9;i<data.length;i++,j++)
+			for(i=HEADER_SIZE;i<data.length;i++,j++)
 			{
 				new_data[j] = data[i];
 				reassembled_file_name.add(data[i]);
@@ -280,12 +237,12 @@ public class TTPclient {
 			System.out.println(data.toString());
 			return data;
 		}
-		else if(data[8] == 64)
+		else if(data[8] == MD5)
 		{
 			System.out.println("reached client fin++++++++++++++++++++++++++");
 			byte[] received_data = (byte[]) datagram.getData();
-			byte[] data_header = new byte[9];
-			int received_seq_num = received_data[3] << 24 | (received_data[2] & 0xFF) << 16 | (received_data[1] & 0xFF) << 8 | (received_data[0] & 0xFF);
+			byte[] data_header = new byte[HEADER_SIZE];
+			int received_seq_num = byte_to_int(received_data, 3, 2, 1, 0);
 			data_header = create_header(isn_client, received_seq_num + 1, 'V');
 			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
 		}
@@ -295,6 +252,12 @@ public class TTPclient {
 		}
 		System.out.println(data.toString());
 		return data;
+	}
+
+	private int byte_to_int(byte[] header, int i, int j, int k, int l) {
+		// TODO Auto-generated method stub
+		int value = header[i] << 24 | (header[j] & 0xFF) << 16 | (header[k] & 0xFF) << 8 | (header[l] & 0xFF);
+		return value;
 	}
 
 	/**
@@ -315,17 +278,15 @@ public class TTPclient {
 		/*
 		 * Loop till the Finish flag is set
 		 */
-		int received_seq =temp[3] << 24 | (temp[2] & 0xFF) << 16 | (temp[1] & 0xFF) << 8 | (temp[0] & 0xFF);
+		int received_seq =byte_to_int(temp, 3, 2, 1, 0);
 		last_ack = received_seq;
-		while(temp[8] != 2 && temp[8] != 64)
+		while(temp[8] != LAST_PACKET && temp[8] != MD5)
 		{
-			received_seq =temp[3] << 24 | (temp[2] & 0xFF) << 16 | (temp[1] & 0xFF) << 8 | (temp[0] & 0xFF);
+			received_seq =byte_to_int(temp, 3, 2, 1, 0);
 			System.out.println("I got the data with seq number :" + received_seq);
-			if(temp[8]==16 && received_seq == last_ack)
+			if(temp[8]==DATA && received_seq == last_ack)
 			{
-				int l=0;
-
-				for(l = 9; l<temp.length;l++)
+				for(int l = HEADER_SIZE; l<temp.length;l++)
 				{
 					reassembled_file.add(temp[l]);
 				}
@@ -338,27 +299,25 @@ public class TTPclient {
 		/*
 		 * Add the byte that has Finish flag set
 		 */
-		received_seq =temp[3] << 24 | (temp[2] & 0xFF) << 16 | (temp[1] & 0xFF) << 8 | (temp[0] & 0xFF);
-		if(temp[8]==2 && received_seq == last_ack)
+		received_seq =byte_to_int(temp, 3, 2, 1, 0);
+		if(temp[8]==LAST_PACKET && received_seq == last_ack)
 		{
 			int l=0;
-			for(l = 9; l<temp.length;l++)
+			for(l = HEADER_SIZE; l<temp.length;l++)
 			{
 				reassembled_file.add(temp[l]);
 			}
 			temp = receive_data(src_port);
 			last_ack++;
 		}
-
-
-		while(temp[8]!=64)
+		while(temp[8]!=MD5)
 		{
 			temp = receive_data(src_port);
 		}
-		if(temp[8] == 64)
+		if(temp[8] == MD5)
 		{
 			int j = 0;
-			for(i=9;i<temp.length;i++,j++)
+			for(i=HEADER_SIZE;i<temp.length;i++,j++)
 			{
 				md5_value[j] = temp[i];
 			}
@@ -397,8 +356,8 @@ public class TTPclient {
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
 	public void connection_close() throws IOException { 
-		byte[] header = new byte[8]; //byte array to store the flag
-		header = create_header(isn_client, last_ack, 'F'); // create a header with only ack set
+		byte[] header = new byte[9]; //byte array to store the flag
+		header = create_header(isn_client, last_ack, 'C'); // create a header with only ack set
 		send_data(header, dest_port, src_port, src_ip, dest_ip);
 	}
 
@@ -411,7 +370,7 @@ public class TTPclient {
 	 * @return the byte[]
 	 */
 	public byte[] create_header(int seq_num, int ack, char flag) {
-		byte[] header = new byte[9];
+		byte[] header = new byte[HEADER_SIZE];
 		header[0] = (byte)(seq_num & 0xFF);
 		header[1] = (byte)((seq_num >> 8) & 0xFF);
 		header[2] = (byte)((seq_num >> 16) & 0xFF);
@@ -420,30 +379,27 @@ public class TTPclient {
 		header[5] = (byte)((ack >> 8) & 0xFF);
 		header[6] = (byte)((ack >> 16) & 0xFF);
 		header[7] = (byte)((ack >> 24) & 0xFF);
-		//S == SYN
-		if(flag == 'S')
-			header[8] = 0x01;
-		//start of file
-		if(flag == 'D')
-			header[8] = 0x10;
-		// F == FIN end of file
-		if(flag == 'A')
-			header[8] = 0x08;
-		if(flag == 'B')
-			header[8] = 0x09;
-		else if(flag == 'F')
-			header[8] = 0x02;
-		//file name
-		else if(flag == 'E')
-			header[8] = 0x20;
-		//C == close connection
-		else if(flag == 'C')
-			header[8] = 0x04;
-		else if(flag == 'V')
-			header[8] = 0x05;
-
+		switch(flag)
+		{
+		case 'S': header[8] = 0x01; 	
+		break;
+		case 'D': header[8] = 0x10;
+		break;
+		case 'A': header[8] = 0x08;
+		break;
+		case 'B': header[8] = 0x09;
+		break;
+		case 'F': header[8] = 0x02;
+		break;
+		case 'E': header[8] = 0x20;
+		break;
+		case 'C': header[8] = 0x04;
+		break;
+		case 'V': header[8] = 0x05;
+		break;
+		default: break;
+		}	
 		return header;
-
 	}
 
 	/**

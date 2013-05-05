@@ -1,6 +1,3 @@
-/*
- * 
- */
 package applications;
 
 import java.io.BufferedOutputStream;
@@ -12,13 +9,10 @@ import java.util.Scanner;
 import services.TTPclient;
 
 // TODO: Auto-generated Javadoc
-/**
- * The Class Ftpclient.
- */
 public class Ftpclient {
-	
-	/** The ts. */
 	private static TTPclient ts;
+	private static String source_ip = "127.0.0.1";
+	private static String destination_ip = "127.0.0.1";
 	
 	/**
 	 * The main method.
@@ -46,10 +40,10 @@ public class Ftpclient {
 
 	    
 		ts = new TTPclient();
-		ts.connection_open(String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), "127.0.0.1", "127.0.0.1");
+		
+		ts.connection_open(String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), source_ip, destination_ip);
 		byte[] received_byte_array = ts.receive_data(String.valueOf((short)port));
-		String receivedfile = ts.send_file_name(filename,String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), "127.0.0.1", "127.0.0.1");
-	//	System.out.println("received at client->" + receivedfile);
+		String receivedfile = ts.send_file_name(filename,String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), source_ip, destination_ip);
 		byte dataToWrite[] = receivedfile.getBytes();
 		String client_file_path = new String("clientfiles/" + filename);
 		FileOutputStream out = new FileOutputStream(client_file_path);

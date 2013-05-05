@@ -1,6 +1,3 @@
-/*
- * 
- */
 	package applications;
 
 import java.io.File;
@@ -9,26 +6,17 @@ import java.io.FileNotFoundException;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Scanner;
-
 import services.DatagramService;
 import services.TTPServer;
 
 // TODO: Auto-generated Javadoc
-/**
- * The Class Ftpserver.
- */
 public class Ftpserver {
 	
-	/** The ds. */
-	private static DatagramService ds;
-	
-	/** The ts. */
 	private static TTPServer ts;
-	
-	/** The source port. */
 	private static String SOURCE_PORT = "4444";
-	
+	private static int FILE_NAME = 32;
+	private static final int HEADER_SIZE = 9;
+	private static final int ACK = 8;
 	/**
 	 * The main method.
 	 *
@@ -44,7 +32,7 @@ public class Ftpserver {
 		
 		System.out.println("Starting Server ...");
 		
-		int port = Integer.parseInt(args[0]);
+		Integer.parseInt(args[0]);
 		ts = new TTPServer();
 		run();
 	}
@@ -59,7 +47,7 @@ public class Ftpserver {
 		byte[] received_byte_array = null;
 		while(true) {
 			received_byte_array = ts.receive_data(SOURCE_PORT);
-			if(received_byte_array[8]==32)
+			if(received_byte_array[8] == FILE_NAME)
 			{
 				int i;
 				int j = 0;
@@ -67,30 +55,30 @@ public class Ftpserver {
 				/*
 				 * converting the filename byte array into string
 				 */
-				for(i=9;i<received_byte_array.length;i++,j++)
+				for(i=HEADER_SIZE;i<received_byte_array.length;i++,j++)
 				{
 					new_data[j] = received_byte_array[i];
 				}
 				String received_file = new String(new_data);
-			    System.out.println("received file name:" + received_file);
-			    if(received_byte_array[8] == 32)
-			    	send_file(received_file);
-			    /*
-			     * 
-			     * Write code here to read a file with file name = received_file 
-			     * and store it in a byte array titled data_to_send
-			     * 
-			     */
-			    
+			    if(received_byte_array[8] == FILE_NAME)
+			    	send_file(received_file);			    
 			}
-			else if(received_byte_array[8] == 8)
+			else if(received_byte_array[8] == ACK)
 			{
-				int received_ack = received_byte_array[7] << 24 | (received_byte_array[6] & 0xFF) << 16 | (received_byte_array[5] & 0xFF) << 8 | (received_byte_array[4] & 0xFF);
+				System.out.println("got final ack of open connection");
+				int received_ack = byte_to_int(received_byte_array,7,6,5,4);
 				Thread newThread = new Thread(new TTPSend(received_byte_array,ts,received_ack));
 				newThread.start();
 			}
 			System.out.println("received data" + received_byte_array.toString());
 		}
+	}
+
+	private static int byte_to_int(byte[] received_byte_array, int i, int j,
+			int k, int l) {
+		// TODO Auto-generated method stub
+		int value = received_byte_array[i] << 24 | (received_byte_array[j] & 0xFF) << 16 | (received_byte_array[k] & 0xFF) << 8 | (received_byte_array[l] & 0xFF);
+		return value;
 	}
 
 	/**
@@ -102,7 +90,6 @@ public class Ftpserver {
 	 */
 	private static void send_file(String received_file) throws IOException, ClassNotFoundException {
 		// TODO Auto-generated method stub
-		System.out.println("Received filename at the server" + received_file);
 		File new_file = new File(received_file);	
         byte[] data_to_send = new byte[(int) new_file.length()];
         try {
@@ -132,6 +119,8 @@ public class Ftpserver {
 }
 
 class TTPSend implements Runnable {
+	private static final int HEADER_SIZE = 9;
+	private static final byte ACK = 8;
 	private TTPServer server;
 	private byte[] data;
 	private int seq_num;
@@ -146,9 +135,9 @@ class TTPSend implements Runnable {
 	public void run() {
 		// TODO Auto-generated method stub
 		try {
-			if(data.length == 9)
+			if(data.length == HEADER_SIZE)
 			{
-				if(data[8] == 8)
+				if(data[8] == ACK)
 				server.send_file(null, seq_num);
 			}
 			else
