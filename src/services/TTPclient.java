@@ -1,5 +1,7 @@
 package services;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -7,6 +9,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
+import javax.swing.Timer;
+
+
 import datatypes.Datagram;
 
 // TODO: Auto-generated Javadoc
@@ -14,10 +20,7 @@ import datatypes.Datagram;
 public class TTPclient {
 	private int isn_client;
 	private int last_ack;
-	private int seq_num = 0;
-	private int ack = 0;
 	private int open=0;
-	private char flag = 'S';
 	public List<Byte> reassembled_file = new ArrayList<Byte>();
 	public List<Byte> reassembled_file_name = new ArrayList<Byte>();
 	public byte [] md5_value = new byte[16];
@@ -33,12 +36,33 @@ public class TTPclient {
 	private static int FILENAME = 32;
 	private static int DATA = 16;
 	private static int LAST_PACKET = 2;
-	public TTPclient(){
-
-	}
-
+	private static int FIN_CLOSE = 4;
+	private static int FIN_ACK = 5;
 	private static DatagramService ds;
-
+	private int timer_value = 4000;
+	public TTPclient(){
+	/*	 System.out.println("Enter the Timer value : ");	
+		  Scanner scanIn = new Scanner(System.in);
+		    timer_value = scanIn.nextInt();
+		    timer_value *= 1000;
+		    scanIn.close();*/ 
+	}
+	
+	ActionListener resendData = new ActionListener(){
+		public void actionPerformed(ActionEvent event){
+			byte[] header = new byte[HEADER_SIZE];
+			header = create_header(isn_client, last_ack, 'A'); // create a header with only ack set			
+			try {
+				send_data(header, dest_port, src_port, src_ip, dest_ip);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}			
+			System.out.println("TTP CLient resends the data after timeout!");
+		}
+	};
+	
+	Timer timer = new Timer(timer_value,resendData);
 	/**
 	 * Connection_open.
 	 *
@@ -92,6 +116,7 @@ public class TTPclient {
 		//sends the filename
 		send_data(combined_filename, dest_port, src_port, src_ip, dest_ip);
 		// call receive file to receive the file
+		timer.start();
 		String sendingfile = receive_file(src_port);
 		return sendingfile;
 	}
@@ -237,7 +262,7 @@ public class TTPclient {
 			System.out.println(data.toString());
 			return data;
 		}
-		else if(data[8] == MD5)
+		else if(data[8] == FIN_CLOSE)
 		{
 			System.out.println("reached client fin++++++++++++++++++++++++++");
 			byte[] received_data = (byte[]) datagram.getData();
@@ -246,7 +271,7 @@ public class TTPclient {
 			data_header = create_header(isn_client, received_seq_num + 1, 'V');
 			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
 		}
-		else if(data[8] == 5)
+		else if(data[8] == FIN_ACK)
 		{
 			System.out.println("connection closed at client");
 		}
@@ -286,6 +311,7 @@ public class TTPclient {
 			System.out.println("I got the data with seq number :" + received_seq);
 			if(temp[8]==DATA && received_seq == last_ack)
 			{
+				timer.restart();
 				for(int l = HEADER_SIZE; l<temp.length;l++)
 				{
 					reassembled_file.add(temp[l]);
@@ -295,6 +321,8 @@ public class TTPclient {
 
 			//listening for the next data packet
 			temp = receive_data(src_port);
+	//		timer.start();
+			
 		}
 		/*
 		 * Add the byte that has Finish flag set
@@ -303,6 +331,7 @@ public class TTPclient {
 		if(temp[8]==LAST_PACKET && received_seq == last_ack)
 		{
 			int l=0;
+			timer.restart();
 			for(l = HEADER_SIZE; l<temp.length;l++)
 			{
 				reassembled_file.add(temp[l]);
@@ -317,6 +346,7 @@ public class TTPclient {
 		if(temp[8] == MD5)
 		{
 			int j = 0;
+			timer.stop();
 			for(i=HEADER_SIZE;i<temp.length;i++,j++)
 			{
 				md5_value[j] = temp[i];

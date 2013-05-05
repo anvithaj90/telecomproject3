@@ -43,7 +43,6 @@ public class TTPServer {
 	    timer_value = scanIn.nextInt();
 	    timer_value *= 1000;
 	    scanIn.close(); 
-
 		timer.setDelay(timer_value);
 	}
 	
@@ -189,13 +188,13 @@ private short calculate_checksum(Datagram datagram) {
 		{
 			return data;
 		}
-		else if(data[8] == 64)
+		else if(data[8] == 4)
 		{
 			byte[] received_data = (byte[]) datagram.getData();
 			int received_seq_num = (int)(received_data[0] | received_data[1] << 8 | received_data[2] << 16| received_data[3] << 24);
 			data_header = create_header(isn_server, received_seq_num + 1, 'V');
 			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
-			data_header = create_header(isn_server, 0, 'F');
+			data_header = create_header(isn_server, 0, 'C');
 			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
 		}
 		else if(data[8] == 5)
