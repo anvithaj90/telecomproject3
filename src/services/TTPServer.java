@@ -24,51 +24,29 @@ import datatypes.Datagram;
  */
 public class TTPServer {
 	
-	/** The isn_server. */
 	private int isn_server;
-	
-	/** The dest_port. */
 	String dest_port = "2222";
-	
-	/** The src_port. */
 	String src_port = "4444";
-	
-	/** The src_ip. */
 	String src_ip = "127.0.0.1";
-	
-	/** The dest_ip. */
 	String dest_ip = "127.0.0.1";
-	
-	/** The window_size. */
 	int window_size = 3; 
-	
-	/** The next seq num. */
 	int nextSeqNum = 0;
-	
-	/** The check. */
 	int check = 0;
-	
-	/** The base seq num. */
 	private int baseSeqNum = 0;
-	
-	/** The file_map. */
 	private HashMap<Integer, byte[]> file_map = new HashMap<Integer, byte[]>();
-	
-	/**
-	 * Instantiates a new tTP server.
-	 */
+	private int timer_value = 0;
 	public TTPServer(){
 		System.out.println("Enter the Window Size : ");
 	    Scanner scanIn = new Scanner(System.in);
 	    window_size = scanIn.nextInt();
-	    scanIn.close();            
+	    System.out.println("Enter the Timer value : ");	
+	    timer_value = scanIn.nextInt();
+	    scanIn.close(); 
 	}
 	
 	/** The resend data. */
 	ActionListener resendData = new ActionListener(){
 		public void actionPerformed(ActionEvent event){
-			//timer.start();
-			//nextSeqNum = baseSeqNum;
 			for(int i=baseSeqNum;i<nextSeqNum-1;i++)
 			{
 				try {
@@ -84,8 +62,9 @@ public class TTPServer {
 		}
 	};
 
+
 	/** The timer. */
-	Timer timer = new Timer(2000,resendData);
+	Timer timer = new Timer(timer_value,resendData);
 	
 	/** The payload. */
 	String payload = null;
@@ -118,11 +97,13 @@ public class TTPServer {
 	 * @param dest_ip the dest_ip
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
-	public void send_data(byte[] data, String dest_port, String src_port, String src_ip, String dest_ip) throws IOException	{
+	public void send_data(byte[] data, String dest_port, String src_port, String source_ip, String destination_ip) throws IOException	{
 
 		Datagram datagram = new Datagram();
 		datagram.setData(data);
 		datagram.setSrcaddr(src_ip);
+		src_ip = source_ip;
+		dest_ip = destination_ip;
 		datagram.setDstaddr(dest_ip);
 		datagram.setDstport(Short.parseShort(dest_port));
 		datagram.setSrcport(Short.parseShort(src_port));
@@ -277,7 +258,7 @@ private short calculate_checksum(Datagram datagram) {
 						if(file_map.containsKey(nextSeqNum))
 						{
 							System.out.println("the message i am sending is : " + nextSeqNum);
-							send_data(file_map.get(nextSeqNum), "2222", "4444", "127.0.0.1", "127.0.0.1");
+							send_data(file_map.get(nextSeqNum),  dest_port, src_port, src_ip, dest_ip);
 							if(baseSeqNum == nextSeqNum)
 								timer.start();
 						}
@@ -346,7 +327,7 @@ private short calculate_checksum(Datagram datagram) {
 				if( nextSeqNum < baseSeqNum + window_size){
 					System.out.println("I am sending before ack with this :" + nextSeqNum);
 					
-					send_data(file_map.get(nextSeqNum), "2222", "4444", "127.0.0.1", "127.0.0.1");
+					send_data(file_map.get(nextSeqNum),  dest_port, src_port, src_ip, dest_ip);
 					if(baseSeqNum == nextSeqNum)
 						timer.start();
 					nextSeqNum++;	

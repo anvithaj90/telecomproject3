@@ -17,47 +17,26 @@ import datatypes.Datagram;
  * The Class TTPclient.
  */
 public class TTPclient {
-	
-	/** The isn_client. */
 	private int isn_client;
-	
-	/** The last_ack. */
 	private int last_ack;
-	
-	/** The reassembled_file. */
+	private int seq_num = 0;
+	private int ack = 0;
+	private int open=0;
+	private char flag = 'S';
 	public List<Byte> reassembled_file = new ArrayList<Byte>();
-	
-	/** The reassembled_file_name. */
 	public List<Byte> reassembled_file_name = new ArrayList<Byte>();
-	
-	/** The md5_value. */
 	public byte [] md5_value = new byte[16];
-	
-	/**
-	 * Instantiates a new tT pclient.
-	 */
+	boolean value = false;
+	String dest_port = "4444";
+	String src_port = "2222";
+	String src_ip = "127.0.0.1";
+	String dest_ip = "127.0.0.1";
 	public TTPclient(){
 
 	}
-	
-	/** The value. */
-	boolean value = false;
-	
-	/** The seq_num. */
-	int seq_num = 0;
-	
-	/** The ack. */
-	int ack = 0;
-	
-	/** The flag. */
-	char flag = 'S';
-	
-	/** The open. */
-	int open=0;
-	
-	/** The ds. */
+
 	private static DatagramService ds;
-	
+
 	/**
 	 * Connection_open.
 	 *
@@ -79,10 +58,10 @@ public class TTPclient {
 		datagram.setDstaddr(dest_ip);
 		datagram.setDstport(Short.parseShort(dest_port));
 		datagram.setSrcport(Short.parseShort(src_port));
-//		System.out.println(datagram.toString());
+		//		System.out.println(datagram.toString());
 		ds.sendDatagram(datagram);		
 	}
-	
+
 	/**
 	 * Send_file_name.
 	 *
@@ -108,16 +87,16 @@ public class TTPclient {
 		header = create_header(isn_client,0,'E');
 		System.arraycopy(header, 0, combined_filename, 0, header.length);
 		System.arraycopy(filename_byte_array, 0, combined_filename, header.length, filename_byte_array.length);	
-		
+
 		//sends the filename
 		send_data(combined_filename, dest_port, src_port, src_ip, dest_ip);
-	//	System.out.println("sent file name");
-		
+		//	System.out.println("sent file name");
+
 		// call receive file to receive the file
 		String sendingfile = receive_file(src_port);
 		return sendingfile;
 	}
-	
+
 	/**
 	 * Send_data.
 	 *
@@ -138,32 +117,31 @@ public class TTPclient {
 		datagram.setSrcport(Short.parseShort(src_port));
 		short checksum = calculate_checksum(datagram);
 		datagram.setChecksum(checksum);
-//		System.out.println("sent checksum = "+checksum+"flag = "+received_data[4]);
-//		System.out.println(datagram.toString());
+		//		System.out.println("sent checksum = "+checksum+"flag = "+received_data[4]);
+		//		System.out.println(datagram.toString());
 		ds.sendDatagram(datagram);
-		}
-	
-/**
- * Calculate_checksum.
- *
- * @param datagram the datagram
- * @return the short
- */
-private short calculate_checksum(Datagram datagram) {
-		
+	}
+
+	/**
+	 * Calculate_checksum.
+	 *
+	 * @param datagram the datagram
+	 * @return the short
+	 */
+	private short calculate_checksum(Datagram datagram) {
+
 		// TODO Auto-generated method stub
-//		Checksum checksum = new CRC32();  
 		byte[] buf = (byte[])datagram.getData();
-	    int length = buf.length;
-	        int i = 0;
-	        int sum = 0;
-	        while (length > 0) {
-	            sum += (buf[i++]&0xff) << 8;
-	            if ((--length)==0) break;
-	            sum += (buf[i++]&0xff);
-	            --length;
-	        }
-	        return (short) ((~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF);
+		int length = buf.length;
+		int i = 0;
+		int sum = 0;
+		while (length > 0) {
+			sum += (buf[i++]&0xff) << 8;
+			if ((--length)==0) break;
+			sum += (buf[i++]&0xff);
+			--length;
+		}
+		return (short) ((~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF);
 
 		/*		checksum.update(d,0,(int)d.length);   
 		short value = (short) checksum.getValue(); //this is the real checksum
@@ -180,9 +158,9 @@ private short calculate_checksum(Datagram datagram) {
 	 * @throws InterruptedException the interrupted exception
 	 */
 	public byte[] receive_data(String port) throws ClassNotFoundException, IOException, InterruptedException {
-		
+
 		Datagram datagram = ds.receiveDatagram();
-		
+
 		byte[] data = (byte[])datagram.getData();	//data from the datagram		
 		short checksum;
 		checksum = datagram.getChecksum();
@@ -204,8 +182,8 @@ private short calculate_checksum(Datagram datagram) {
 			src_port = String.valueOf(datagram.getDstport());
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 		}
-		
-//		System.out.println("recieved "+checksum + "flag = "+data[4]);
+
+		//		System.out.println("recieved "+checksum + "flag = "+data[4]);
 		if(data[8] == 9)
 		{
 			byte[] header = new byte[8]; //byte array to store the flag
@@ -245,19 +223,16 @@ private short calculate_checksum(Datagram datagram) {
 				reassembled_file.add(data[i]);
 				new_data[j] = data[i];
 			}
-	//		String received_file = new String(new_data);
-	//	    System.out.println("received file data:" + received_file);
+			//		String received_file = new String(new_data);
+			//	    System.out.println("received file data:" + received_file);
 			/*
 			 * send ack for the received packet
 			 * create a header with only ack set
 			 */
-		    isn_client++;
-		    byte[] header = new byte[9]; //byte array to store the flag
+			isn_client++;
+			byte[] header = new byte[9]; //byte array to store the flag
 			int received_seq_num = data[3] << 24 | (data[2] & 0xFF) << 16 | (data[1] & 0xFF) << 8 | (data[0] & 0xFF);
-			//last_ack = data[7] << 24 | (data[6] & 0xFF) << 16 | (data[5] & 0xFF) << 8 | (data[4] & 0xFF);
-	//		System.out.println("&*&**&*&*&*seq number at client is: "+ isn_client);
 			System.out.println("&*&*&*&*&*&seq number recieved from server is : "+ received_seq_num);
-			//System.out.println("isn client value is: "+ isn_client);
 			header = create_header(isn_client, received_seq_num, 'A');
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 		}
@@ -274,15 +249,15 @@ private short calculate_checksum(Datagram datagram) {
 			int i;
 			int j = 0;
 			byte[] new_data = new byte[(data.length)-8];
-			
+
 			for(i=9;i<data.length;i++,j++)
 			{
 				new_data[j] = data[i];
 				reassembled_file.add(data[i]);
 			}
-			 isn_client++;
-			    byte[] header = new byte[9]; //byte array to store the flag
-				int received_seq_num = data[3] << 24 | (data[2] & 0xFF) << 16 | (data[1] & 0xFF) << 8 | (data[0] & 0xFF);
+			isn_client++;
+			byte[] header = new byte[9]; //byte array to store the flag
+			int received_seq_num = data[3] << 24 | (data[2] & 0xFF) << 16 | (data[1] & 0xFF) << 8 | (data[0] & 0xFF);
 			System.out.println("&*&*&*&*&*&seq number recieved from server is : "+ received_seq_num);
 			//System.out.println("isn client value is: "+ isn_client);
 			header = create_header(isn_client, received_seq_num, 'A');
@@ -312,7 +287,7 @@ private short calculate_checksum(Datagram datagram) {
 			byte[] data_header = new byte[9];
 			int received_seq_num = received_data[3] << 24 | (received_data[2] & 0xFF) << 16 | (received_data[1] & 0xFF) << 8 | (received_data[0] & 0xFF);
 			data_header = create_header(isn_client, received_seq_num + 1, 'V');
-			send_data(data_header,  "4444", "2222", "127.0.0.1", "127.0.0.1");
+			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
 		}
 		else if(data[8] == 5)
 		{
@@ -321,7 +296,7 @@ private short calculate_checksum(Datagram datagram) {
 		System.out.println(data.toString());
 		return data;
 	}
-	
+
 	/**
 	 * Receive_file.
 	 *
@@ -349,14 +324,14 @@ private short calculate_checksum(Datagram datagram) {
 			if(temp[8]==16 && received_seq == last_ack)
 			{
 				int l=0;
-				
+
 				for(l = 9; l<temp.length;l++)
 				{
 					reassembled_file.add(temp[l]);
 				}
 				last_ack++;
 			}
-			
+
 			//listening for the next data packet
 			temp = receive_data(src_port);
 		}
@@ -374,8 +349,8 @@ private short calculate_checksum(Datagram datagram) {
 			temp = receive_data(src_port);
 			last_ack++;
 		}
-		
-	
+
+
 		while(temp[8]!=64)
 		{
 			temp = receive_data(src_port);
@@ -387,7 +362,7 @@ private short calculate_checksum(Datagram datagram) {
 			{
 				md5_value[j] = temp[i];
 			}
-		//	System.out.println("*********************Recieved MD5 = "+md5_value.toString());
+			//	System.out.println("*********************Recieved MD5 = "+md5_value.toString());
 		}
 		/*
 		 * Convert the List to a Byte array 
@@ -400,19 +375,19 @@ private short calculate_checksum(Datagram datagram) {
 			i++;
 		}
 		String reassembled_string = new String(reassembled_file_byte_array);
-	//	System.out.println("$$$$$$$$$$$received file: "+ reassembled_string);
+		//	System.out.println("$$$$$$$$$$$received file: "+ reassembled_string);
 		MessageDigest md = MessageDigest.getInstance("MD5");
 		byte[] thedigest_c = md.digest(reassembled_file_byte_array);
 		if(Arrays.equals(md5_value, thedigest_c))
 		{
 			System.out.println("Yes they are same");
-			
+
 		}
 		else
 		{
 			System.out.println("No they are not same");
 		}
-//		System.out.println("Reassembled string -> " + reassembled_string);
+		//		System.out.println("Reassembled string -> " + reassembled_string);
 		return reassembled_string;
 	}
 
@@ -424,9 +399,9 @@ private short calculate_checksum(Datagram datagram) {
 	public void connection_close() throws IOException { 
 		byte[] header = new byte[8]; //byte array to store the flag
 		header = create_header(isn_client, last_ack, 'F'); // create a header with only ack set
-		send_data(header, "4444", "2222", "127.0.0.1", "127.0.0.1");
+		send_data(header, dest_port, src_port, src_ip, dest_ip);
 	}
-	
+
 	/**
 	 * Create_header.
 	 *
@@ -445,7 +420,7 @@ private short calculate_checksum(Datagram datagram) {
 		header[5] = (byte)((ack >> 8) & 0xFF);
 		header[6] = (byte)((ack >> 16) & 0xFF);
 		header[7] = (byte)((ack >> 24) & 0xFF);
-	//S == SYN
+		//S == SYN
 		if(flag == 'S')
 			header[8] = 0x01;
 		//start of file
@@ -468,9 +443,9 @@ private short calculate_checksum(Datagram datagram) {
 			header[8] = 0x05;
 
 		return header;
-		
+
 	}
-	
+
 	/**
 	 * Give_open_var.
 	 *
@@ -480,7 +455,7 @@ private short calculate_checksum(Datagram datagram) {
 	{
 		return open;
 	}
-	
+
 	/**
 	 * Create_payload.
 	 *
@@ -491,5 +466,5 @@ private short calculate_checksum(Datagram datagram) {
 		byte[] payload_byte = payload.getBytes(); 	    	
 		return payload_byte;
 	}
-	
+
 }
