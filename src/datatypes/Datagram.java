@@ -7,35 +7,60 @@ package datatypes;
 import java.io.Serializable;
 
 
+// TODO: Auto-generated Javadoc
 // Format of datagram packet
+/**
+ * The Class Datagram.
+ */
 public class Datagram implements Serializable {
 	
 	// Source IP address
+	/** The srcaddr. */
 	String srcaddr;
 	
 	// Destination IP address
+	/** The dstaddr. */
 	String dstaddr;
 	
 	// Source port
+	/** The srcport. */
 	short srcport;
 	
 	// Destination port
+	/** The dstport. */
 	short dstport;
 	
 	// Actual length of data section
+	/** The size. */
 	short size;
 	
 	// Datagram checksum
+	/** The checksum. */
 	short checksum;
 	
 	// Actual data
+	/** The data. */
 	Object data;
 
 	
+	/**
+	 * Instantiates a new datagram.
+	 */
 	public Datagram() {
 		super();
 	}
 	
+	/**
+	 * Instantiates a new datagram.
+	 *
+	 * @param srcaddr the srcaddr
+	 * @param dstaddr the dstaddr
+	 * @param srcport the srcport
+	 * @param dstport the dstport
+	 * @param size the size
+	 * @param checksum the checksum
+	 * @param data the data
+	 */
 	public Datagram(String srcaddr, String dstaddr, short srcport,
 			short dstport, short size, short checksum, Object data) {
 		super();
@@ -49,6 +74,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Gets the srcaddr.
+	 *
 	 * @return the srcaddr
 	 */
 	public String getSrcaddr() {
@@ -56,6 +83,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Sets the srcaddr.
+	 *
 	 * @param srcaddr the srcaddr to set
 	 */
 	public void setSrcaddr(String srcaddr) {
@@ -63,6 +92,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Gets the dstaddr.
+	 *
 	 * @return the dstaddr
 	 */
 	public String getDstaddr() {
@@ -70,6 +101,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Sets the dstaddr.
+	 *
 	 * @param dstaddr the dstaddr to set
 	 */
 	public void setDstaddr(String dstaddr) {
@@ -77,6 +110,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Gets the srcport.
+	 *
 	 * @return the srcport
 	 */
 	public short getSrcport() {
@@ -84,6 +119,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Sets the srcport.
+	 *
 	 * @param srcport the srcport to set
 	 */
 	public void setSrcport(short srcport) {
@@ -91,6 +128,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Gets the dstport.
+	 *
 	 * @return the dstport
 	 */
 	public short getDstport() {
@@ -98,6 +137,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Sets the dstport.
+	 *
 	 * @param dstport the dstport to set
 	 */
 	public void setDstport(short dstport) {
@@ -105,6 +146,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Gets the size.
+	 *
 	 * @return the size
 	 */
 	public short getSize() {
@@ -112,6 +155,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Sets the size.
+	 *
 	 * @param size the size to set
 	 */
 	public void setSize(short size) {
@@ -119,6 +164,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Gets the checksum.
+	 *
 	 * @return the checksum
 	 */
 	public short getChecksum() {
@@ -126,6 +173,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Sets the checksum.
+	 *
 	 * @param checksum the checksum to set
 	 */
 	public void setChecksum(short checksum) {
@@ -133,6 +182,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Gets the data.
+	 *
 	 * @return the data
 	 */
 	public Object getData() {
@@ -140,6 +191,8 @@ public class Datagram implements Serializable {
 	}
 
 	/**
+	 * Sets the data.
+	 *
 	 * @param data the data to set
 	 */
 	public void setData(Object data) {

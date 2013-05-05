@@ -1,3 +1,6 @@
+/*
+ * 
+ */
 	package applications;
 
 import java.io.File;
@@ -11,10 +14,28 @@ import java.util.Scanner;
 import services.DatagramService;
 import services.TTPServer;
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class Ftpserver.
+ */
 public class Ftpserver {
+	
+	/** The ds. */
 	private static DatagramService ds;
+	
+	/** The ts. */
 	private static TTPServer ts;
 	
+	/** The source port. */
+	private static String SOURCE_PORT = "4444";
+	
+	/**
+	 * The main method.
+	 *
+	 * @param args the arguments
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws ClassNotFoundException the class not found exception
+	 */
 	public static void main(String[] args) throws IOException, ClassNotFoundException {
 
 		if(args.length != 1) {
@@ -28,10 +49,16 @@ public class Ftpserver {
 		run();
 	}
 
+	/**
+	 * Run.
+	 *
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws ClassNotFoundException the class not found exception
+	 */
 	private static void run() throws IOException, ClassNotFoundException {
 		byte[] received_byte_array = null;
 		while(true) {
-			received_byte_array = ts.receive_data("4444");
+			received_byte_array = ts.receive_data(SOURCE_PORT);
 			if(received_byte_array[8]==32)
 			{
 				int i;
@@ -58,14 +85,21 @@ public class Ftpserver {
 			}
 			else if(received_byte_array[8] == 8)
 			{
-				
-				Thread newThread = new Thread(new TTPSend(received_byte_array,ts,received_byte_array[3]<<8 | received_byte_array[2]));
+				int received_ack = received_byte_array[7] << 24 | (received_byte_array[6] & 0xFF) << 16 | (received_byte_array[5] & 0xFF) << 8 | (received_byte_array[4] & 0xFF);
+				Thread newThread = new Thread(new TTPSend(received_byte_array,ts,received_ack));
 				newThread.start();
 			}
 			System.out.println("received data" + received_byte_array.toString());
 		}
 	}
 
+	/**
+	 * Send_file.
+	 *
+	 * @param received_file the byte array to send to the client
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws ClassNotFoundException the class not found exception
+	 */
 	private static void send_file(String received_file) throws IOException, ClassNotFoundException {
 		// TODO Auto-generated method stub
 		System.out.println("Received filename at the server" + received_file);
@@ -73,7 +107,7 @@ public class Ftpserver {
         byte[] data_to_send = new byte[(int) new_file.length()];
         try {
               FileInputStream fileInputStream = new FileInputStream(new_file);
-              fileInputStream.read(data_to_send);
+              fileInputStream.read(data_to_send,0,(int) new_file.length());
               fileInputStream.close();
          } catch (FileNotFoundException e) {
                      System.out.println("File Not Found.");
@@ -87,6 +121,9 @@ public class Ftpserver {
 		newThread.start();	
 	}
 
+	/**
+	 * Prints the usage.
+	 */
 	private static void printUsage() {
 		System.out.println("Usage: server <port>");
 		System.exit(-1);

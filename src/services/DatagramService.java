@@ -20,12 +20,28 @@ import java.net.SocketException;
 
 import datatypes.Datagram;
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class DatagramService.
+ */
 public class DatagramService {
 
+	/** The port. */
 	private int port;
+	
+	/** The verbose. */
 	private int verbose;
+	
+	/** The socket. */
 	private DatagramSocket socket;
 
+	/**
+	 * Instantiates a new datagram service.
+	 *
+	 * @param port the port
+	 * @param verbose the verbose
+	 * @throws SocketException the socket exception
+	 */
 	public DatagramService(int port, int verbose) throws SocketException {
 		super();
 		this.port = port;
@@ -34,6 +50,12 @@ public class DatagramService {
 		socket = new DatagramSocket(port);
 	}
 
+	/**
+	 * Send datagram.
+	 *
+	 * @param datagram the datagram
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 */
 	public void sendDatagram(Datagram datagram) throws IOException {
 
 		ByteArrayOutputStream bStream = new ByteArrayOutputStream(1500);
@@ -51,6 +73,13 @@ public class DatagramService {
 		socket.send(packet);
 	}
 
+	/**
+	 * Receive datagram.
+	 *
+	 * @return the datagram
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws ClassNotFoundException the class not found exception
+	 */
 	public Datagram receiveDatagram() throws IOException,
 			ClassNotFoundException {
 
