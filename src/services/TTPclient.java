@@ -33,7 +33,7 @@ public class TTPclient {
 	String src_port = "2222";
 	String src_ip = "127.0.0.1";
 	String dest_ip = "127.0.0.1";
-	private static int MAX_RANDOM_NUMBER = 40000;
+	private static int MAX_RANDOM_NUMBER = 80000;
 	private static int HEADER_SIZE = 9;
 	private static int SYN_ACK = 9;
 	private static int MD5 = 64;

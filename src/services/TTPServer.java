@@ -40,7 +40,7 @@ public class TTPServer {
 	private HashMap<Integer, byte[]> file_map = new HashMap<Integer, byte[]>();
 	private int timer_value = 8000;
 	private static int MAX_PAYLOAD = 1285;
-	private static int MAX_RANDOM_NUMBER = 40000;
+	private static int MAX_RANDOM_NUMBER = 80000;
 	private static int HEADER_SIZE = 9;
 	private static int SYN = 1;
 	private static int FILENAME = 32;
