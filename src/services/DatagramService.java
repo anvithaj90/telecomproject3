@@ -17,17 +17,31 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.Random;
 
 import datatypes.Datagram;
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class DatagramService.
+ */
 public class DatagramService {
 
+	/** The port. */
 	private int port;
+	
+	/** The verbose. */
 	private int verbose;
+	
+	/** The socket. */
 	private DatagramSocket socket;
-	private int count=0;
 
+	/**
+	 * Instantiates a new datagram service.
+	 *
+	 * @param port the port
+	 * @param verbose the verbose
+	 * @throws SocketException the socket exception
+	 */
 	public DatagramService(int port, int verbose) throws SocketException {
 		super();
 		this.port = port;
@@ -36,38 +50,38 @@ public class DatagramService {
 		socket = new DatagramSocket(port);
 	}
 
+	/**
+	 * Send datagram.
+	 *
+	 * @param datagram the datagram
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 */
 	public void sendDatagram(Datagram datagram) throws IOException {
-		count++;
 
 		ByteArrayOutputStream bStream = new ByteArrayOutputStream(1500);
 		ObjectOutputStream oStream = new ObjectOutputStream(bStream);
 		oStream.writeObject(datagram);
 		oStream.flush();
 
+		// Create Datagram Packet
 		byte[] data = bStream.toByteArray();
 		InetAddress IPAddress = InetAddress.getByName(datagram.getDstaddr());
 		DatagramPacket packet = new DatagramPacket(data, data.length,
 				IPAddress, datagram.getDstport());
-		/*if(count == 1)
-		{
-			//drop first syn packet this is not handled by our code so remove when testing
-		}
-		else*/ if(count%9==0) {
-			// Delayed Packets
-			int delay = 10;   //delay in milliseconds
-			Delayed(packet,delay);
-		}  else if(count%7==0) {
-			// Duplicate Packets
-			Duplicates(packet);
-		} else if (count%11==0) {
-			//Drop Packets
-		} else {
-			socket.send(packet);
-		}
+
+		// Send packet
+		socket.send(packet);
 	}
 
+	/**
+	 * Receive datagram.
+	 *
+	 * @return the datagram
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws ClassNotFoundException the class not found exception
+	 */
 	public Datagram receiveDatagram() throws IOException,
-	ClassNotFoundException {
+			ClassNotFoundException {
 
 		byte[] buf = new byte[1500];
 		DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -81,19 +95,4 @@ public class DatagramService {
 
 		return datagram;
 	}
-	private void Delayed(DatagramPacket packet,int delay) throws IOException {
-		try {
-			Thread.sleep(delay);
-		} catch (InterruptedException e) {
-		//	e.printStackTrace();
-		}
-		socket.send(packet);
-	}
-
-	private void Duplicates(DatagramPacket packet) throws IOException {
-		int number_of_duplicates = 5;
-		for(int i = 0; i<number_of_duplicates; i++)
-			socket.send(packet);
-	}
-
 }

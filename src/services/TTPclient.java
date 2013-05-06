@@ -1,3 +1,8 @@
+/*
+ * Authors: 
+ * Anvitha Jaishankar (anvithaj@cmu.edu)
+ * Ruchir Patwa (rpatwa@cmu.edu)
+ */
 package services;
 
 import java.awt.event.ActionEvent;
@@ -35,17 +40,17 @@ public class TTPclient {
 	private static int MD5 = 64;
 	private static int FILENAME = 32;
 	private static int DATA = 16;
-	private static int LAST_PACKET = 2;
+	private static int EOF = 2;
 	private static int FIN_CLOSE = 4;
 	private static int FIN_ACK = 5;
 	private static DatagramService ds;
-	private int timer_value = 4000;
+	private int timer_value = 8000;
 	public TTPclient(){
-	/*	 System.out.println("Enter the Timer value : ");	
-		  Scanner scanIn = new Scanner(System.in);
-		    timer_value = scanIn.nextInt();
-		    timer_value *= 1000;
-		    scanIn.close();*/ 
+		
+		    timer_value = 8 * 1000;
+		  //  timer_value *= 1000;
+		    System.out.println("timer value is :" + timer_value);
+		timer.setDelay(timer_value);
 	}
 	
 	ActionListener resendData = new ActionListener(){
@@ -227,7 +232,7 @@ public class TTPclient {
 			header = create_header(isn_client, received_seq_num, 'A');
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 		}
-		if(data[8] == LAST_PACKET)
+		if(data[8] == EOF)
 		{
 			int i;
 			int j = 0;
@@ -262,18 +267,23 @@ public class TTPclient {
 			System.out.println(data.toString());
 			return data;
 		}
-		else if(data[8] == FIN_CLOSE)
+		else if(data[8] == 4)
 		{
-			System.out.println("reached client fin++++++++++++++++++++++++++");
+			System.out.println("client received fin+++++++++++++++++++++");
 			byte[] received_data = (byte[]) datagram.getData();
 			byte[] data_header = new byte[HEADER_SIZE];
 			int received_seq_num = byte_to_int(received_data, 3, 2, 1, 0);
 			data_header = create_header(isn_client, received_seq_num + 1, 'V');
 			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
 		}
-		else if(data[8] == FIN_ACK)
+		else if(data[8] == 5)
 		{
-			System.out.println("connection closed at client");
+			
+			System.out.println("client received FIN_ACK+++++++++++++connection closed at client");
+			while(data[8] != FIN_CLOSE)
+			{
+				data=receive_data(src_port);
+			}
 		}
 		System.out.println(data.toString());
 		return data;
@@ -305,7 +315,7 @@ public class TTPclient {
 		 */
 		int received_seq =byte_to_int(temp, 3, 2, 1, 0);
 		last_ack = received_seq;
-		while(temp[8] != LAST_PACKET && temp[8] != MD5)
+		while(temp[8] != EOF && temp[8] != MD5)
 		{
 			received_seq =byte_to_int(temp, 3, 2, 1, 0);
 			System.out.println("I got the data with seq number :" + received_seq);
@@ -328,7 +338,7 @@ public class TTPclient {
 		 * Add the byte that has Finish flag set
 		 */
 		received_seq =byte_to_int(temp, 3, 2, 1, 0);
-		if(temp[8]==LAST_PACKET && received_seq == last_ack)
+		if(temp[8]==EOF && received_seq == last_ack)
 		{
 			int l=0;
 			timer.restart();
@@ -370,12 +380,12 @@ public class TTPclient {
 		if(Arrays.equals(md5_value, thedigest_c))
 		{
 			System.out.println("Yes they are same");
-
 		}
 		else
 		{
 			System.out.println("No they are not same");
 		}
+		last_ack++;
 		//		System.out.println("Reassembled string -> " + reassembled_string);
 		return reassembled_string;
 	}
@@ -384,11 +394,21 @@ public class TTPclient {
 	 * Connection_close.
 	 *
 	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws InterruptedException 
+	 * @throws ClassNotFoundException 
 	 */
-	public void connection_close() throws IOException { 
+	public void connection_close() throws IOException, ClassNotFoundException, InterruptedException { 
 		byte[] header = new byte[9]; //byte array to store the flag
+		System.out.println("client sendsFIN+++++++++++++++++++++++++");
 		header = create_header(isn_client, last_ack, 'C'); // create a header with only ack set
 		send_data(header, dest_port, src_port, src_ip, dest_ip);
+		byte[] temp = new byte[1294+HEADER_SIZE];
+		temp =receive_data(src_port);
+		while(temp[8]!=FIN_ACK)
+		{
+			temp = receive_data(src_port);
+		}
+		
 	}
 
 	/**

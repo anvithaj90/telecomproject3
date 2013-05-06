@@ -1,3 +1,8 @@
+/*
+ * Authors: 
+ * Anvitha Jaishankar (anvithaj@cmu.edu)
+ * Ruchir Patwa (rpatwa@cmu.edu)
+ */
 package applications;
 
 import java.io.BufferedOutputStream;
@@ -35,15 +40,16 @@ public class Ftpclient {
 		String filename;
 	    Scanner scanIn = new Scanner(System.in);
 	    filename = scanIn.nextLine();
-	    scanIn.close();            
-	    System.out.println(filename);
-
+	   /* System.out.println("Enter the timer value : ");
+		int timer=5000;
+	    timer = scanIn.nextInt();
+	    scanIn.close();      */      
 	    
 		ts = new TTPclient();
-		
 		ts.connection_open(String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), source_ip, destination_ip);
 		byte[] received_byte_array = ts.receive_data(String.valueOf((short)port));
 		String receivedfile = ts.send_file_name(filename,String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), source_ip, destination_ip);
+	
 		byte dataToWrite[] = receivedfile.getBytes();
 		String client_file_path = new String("clientfiles/" + filename);
 		FileOutputStream out = new FileOutputStream(client_file_path);
@@ -51,6 +57,8 @@ public class Ftpclient {
 		bs.write(dataToWrite);
 		bs.close();
 		bs=null;
+		ts.connection_close();
+		
 	}
 	
 	/**

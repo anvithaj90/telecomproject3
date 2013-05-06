@@ -1,5 +1,7 @@
 /*
- * 
+ * Authors: 
+ * Anvitha Jaishankar (anvithaj@cmu.edu)
+ * Ruchir Patwa (rpatwa@cmu.edu)
  */
 package services;
 
@@ -23,7 +25,7 @@ import datatypes.Datagram;
  * The Class TTPServer.
  */
 public class TTPServer {
-	
+
 	private int isn_server;
 	String dest_port = "2222";
 	String src_port = "4444";
@@ -37,15 +39,15 @@ public class TTPServer {
 	private int timer_value = 8000;
 	public TTPServer(){
 		System.out.println("Enter the Window Size : ");
-	    Scanner scanIn = new Scanner(System.in);
-	    window_size = scanIn.nextInt();
-	    System.out.println("Enter the Timer value : ");	
-	    timer_value = scanIn.nextInt();
-	    timer_value *= 1000;
-	    scanIn.close(); 
+		Scanner scanIn = new Scanner(System.in);
+		window_size = scanIn.nextInt();
+		System.out.println("Enter the Timer value : ");	
+		timer_value = scanIn.nextInt();
+		timer_value *= 1000;
+		scanIn.close(); 
 		timer.setDelay(timer_value);
 	}
-	
+
 	/** The resend data. */
 	ActionListener resendData = new ActionListener(){
 		public void actionPerformed(ActionEvent event){
@@ -59,8 +61,6 @@ public class TTPServer {
 				}
 			}
 			System.out.println("TTP Server resends the data after timeout!");
-
-			
 		}
 	};
 
@@ -70,7 +70,7 @@ public class TTPServer {
 	byte[] data_header = new byte[9];
 	int seq_num = 0;
 	int ack = 0;
-	
+
 	/** The flag. */
 	char flag = 'S';
 
@@ -104,27 +104,27 @@ public class TTPServer {
 		ds.sendDatagram(datagram);
 	}
 
-/**
- * Calculate_checksum.
- *
- * @param datagram the datagram
- * @return the short
- */
-private short calculate_checksum(Datagram datagram) {
-		
+	/**
+	 * Calculate_checksum.
+	 *
+	 * @param datagram the datagram
+	 * @return the short
+	 */
+	private short calculate_checksum(Datagram datagram) {
+
 		// TODO Auto-generated method stub
-//		Checksum checksum = new CRC32();  
+		//		Checksum checksum = new CRC32();  
 		byte[] buffer = (byte[])datagram.getData();
-	    int length = buffer.length;
-	        int i = 0;
-	        int sum = 0;
-	        while (length > 0) {
-	            sum += (buffer[i++]&0xff) << 8;
-	            if ((--length)==0) break;
-	            sum += (buffer[i++]&0xff);
-	            --length;
-	        }
-	        return (short) ((~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF);
+		int length = buffer.length;
+		int i = 0;
+		int sum = 0;
+		while (length > 0) {
+			sum += (buffer[i++]&0xff) << 8;
+			if ((--length)==0) break;
+			sum += (buffer[i++]&0xff);
+			--length;
+		}
+		return (short) ((~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF);
 
 		/*		checksum.update(d,0,(int)d.length);   
 		short value = (short) checksum.getValue(); //this is the real checksum
@@ -148,7 +148,7 @@ private short calculate_checksum(Datagram datagram) {
 
 		byte[] data = (byte[]) datagram.getData();	//data from the datagram
 		byte[] data1 = new byte[1294]; //byte array for data
-	
+		byte[] temp = new byte[1294+9];
 		//	System.out.println("received checksum = "+checksum+"flag = "+data[4]);
 		if(data[8] == 1)
 		{
@@ -190,21 +190,35 @@ private short calculate_checksum(Datagram datagram) {
 		}
 		else if(data[8] == 4)
 		{
+			System.out.println("server received FIN_CLOSE");
 			byte[] received_data = (byte[]) datagram.getData();
 			int received_seq_num = (int)(received_data[0] | received_data[1] << 8 | received_data[2] << 16| received_data[3] << 24);
+			System.out.println("server sends FIN_ACK++++++++++++++++++++++++");
 			data_header = create_header(isn_server, received_seq_num + 1, 'V');
 			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
-			data_header = create_header(isn_server, 0, 'C');
+
+			isn_server++;
+
+			System.out.println("server sends FIN_close++++++++");
+			data_header = create_header(isn_server, received_seq_num + 1, 'C');
 			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
+
+			temp =receive_data(src_port);
+			while(temp[8]!=5)
+			{
+				temp = receive_data(src_port);
+			}
+
 		}
-		else if(data[8] == 5)
+		if(temp[8] == 5)
 		{
-			file_map.clear();
-			System.out.println("connection closed at server");
+	//		file_map.clear();
+
+			System.out.println("server receeived FIN_ACK connection closed at server");
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Send_file.
 	 *
@@ -243,7 +257,7 @@ private short calculate_checksum(Datagram datagram) {
 				for(i=0;i<window_size;i++){
 					if(nextSeqNum <= baseSeqNum + window_size)
 					{
-						
+
 						if(file_map.containsKey(nextSeqNum))
 						{
 							System.out.println("the message i am sending is : " + nextSeqNum);
@@ -314,7 +328,7 @@ private short calculate_checksum(Datagram datagram) {
 			for(i=0;i<data_full.length-1285;i+=1285){
 				if( nextSeqNum < baseSeqNum + window_size){
 					System.out.println("I am sending before ack with this :" + nextSeqNum);
-					
+
 					send_data(file_map.get(nextSeqNum),  dest_port, src_port, src_ip, dest_ip);
 					if(baseSeqNum == nextSeqNum)
 						timer.start();
@@ -345,23 +359,23 @@ private short calculate_checksum(Datagram datagram) {
 		header[7] = (byte)((ack >> 24) & 0xFF);
 		switch(flag)
 		{
-			case 'S': header[8] = 0x01; 	
-			break;
-			case 'D': header[8] = 0x10;
-			break;
-			case 'A': header[8] = 0x08;
-			break;
-			case 'B': header[8] = 0x09;
-			break;
-			case 'F': header[8] = 0x02;
-			break;
-			case 'M': header[8] = 0x40;
-			break;
-			case 'C': header[8] = 0x04;
-			break;
-			case 'V': header[8] = 0x05;
-			break;
-			default: break;
+		case 'S': header[8] = 0x01; 	
+		break;
+		case 'D': header[8] = 0x10;
+		break;
+		case 'A': header[8] = 0x08;
+		break;
+		case 'B': header[8] = 0x09;
+		break;
+		case 'F': header[8] = 0x02;
+		break;
+		case 'M': header[8] = 0x40;
+		break;
+		case 'C': header[8] = 0x04;
+		break;
+		case 'V': header[8] = 0x05;
+		break;
+		default: break;
 		}	
 		return header;	
 	}

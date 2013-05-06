@@ -1,3 +1,8 @@
+/*
+ * Authors: 
+ * Anvitha Jaishankar (anvithaj@cmu.edu)
+ * Ruchir Patwa (rpatwa@cmu.edu)
+ */
 	package applications;
 
 import java.io.File;
