@@ -21,7 +21,6 @@ import javax.swing.Timer;
 import datatypes.Datagram;
 
 // TODO: Auto-generated Javadoc
-
 public class TTPclient {
 	private int isn_client;
 	private int last_ack;
@@ -43,20 +42,20 @@ public class TTPclient {
 	private static int EOF = 2;
 	private static int FIN_CLOSE = 4;
 	private static int FIN_ACK = 5;
+	private static int FLAG_BYTE = 8;
+	private static int MAX_PAYLOAD = 1285;
 	private static DatagramService ds;
 	private int timer_value = 8000;
-	public TTPclient(){
-		
-		    timer_value = 8 * 1000;
-		  //  timer_value *= 1000;
-		    System.out.println("timer value is :" + timer_value);
+	public TTPclient(int timer_val){
+		timer_value = timer_val*1000;
+		System.out.println("timer value is :" + timer_value);
 		timer.setDelay(timer_value);
 	}
-	
+
 	ActionListener resendData = new ActionListener(){
 		public void actionPerformed(ActionEvent event){
 			byte[] header = new byte[HEADER_SIZE];
-			header = create_header(isn_client, last_ack, 'A'); // create a header with only ack set			
+			header = create_header(isn_client, last_ack, 'A'); 		
 			try {
 				send_data(header, dest_port, src_port, src_ip, dest_ip);
 			} catch (IOException e) {
@@ -66,7 +65,7 @@ public class TTPclient {
 			System.out.println("TTP CLient resends the data after timeout!");
 		}
 	};
-	
+
 	Timer timer = new Timer(timer_value,resendData);
 	/**
 	 * Connection_open.
@@ -108,9 +107,6 @@ public class TTPclient {
 	 */
 	public String send_file_name(String filename, String dest_port, String src_port, String src_ip, String dest_ip) throws IOException, ClassNotFoundException, InterruptedException, NoSuchAlgorithmException {
 		// TODO Auto-generated method stub
-		/*
-		 * Set the D flag to indicate that client is sending the filename
-		 */
 		byte[] header = new byte[HEADER_SIZE];
 		byte[] filename_byte_array = filename.getBytes();
 		byte[] combined_filename = new byte[header.length + filename_byte_array.length];
@@ -118,9 +114,8 @@ public class TTPclient {
 		System.arraycopy(header, 0, combined_filename, 0, header.length);
 		System.arraycopy(filename_byte_array, 0, combined_filename, header.length, filename_byte_array.length);	
 
-		//sends the filename
 		send_data(combined_filename, dest_port, src_port, src_ip, dest_ip);
-		// call receive file to receive the file
+
 		timer.start();
 		String sendingfile = receive_file(src_port);
 		return sendingfile;
@@ -183,7 +178,7 @@ public class TTPclient {
 	public byte[] receive_data(String port) throws ClassNotFoundException, IOException, InterruptedException {
 
 		Datagram datagram = ds.receiveDatagram();
-		byte[] data = (byte[])datagram.getData();	//data from the datagram
+		byte[] data = (byte[])datagram.getData();	
 
 		dest_ip = datagram.getSrcaddr();
 		src_ip = datagram.getDstaddr();
@@ -192,23 +187,22 @@ public class TTPclient {
 		short received_checksum = datagram.getChecksum();
 		short cal_checksum = calculate_checksum(datagram);
 		byte[] header = new byte[HEADER_SIZE];
-		
+
 		if(received_checksum != cal_checksum)
 		{
-			//byte array to store the flag
-			header = create_header(isn_client, last_ack, 'A'); // create a header with both syn and ack set
+			header = create_header(isn_client, last_ack, 'A'); 
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 		}
 
-		if(data[8] == SYN_ACK)
-		{	 //byte array to store the flag
+		if(data[FLAG_BYTE] == SYN_ACK)
+		{	 
 			int received_seq_num = byte_to_int(header, 3, 2, 1, 0);
 			isn_client++;
-			header = create_header(isn_client+1, received_seq_num + 1, 'A'); // create a header with only ack set			
+			header = create_header(isn_client+1, received_seq_num + 1, 'A'); 			
 			send_data(header, dest_port, src_port, src_ip, dest_ip);	
 			value = true;
 		}
-		if(data[8] == DATA)
+		if(data[FLAG_BYTE] == DATA)
 		{
 			int i;
 			int j = 0;
@@ -221,18 +215,14 @@ public class TTPclient {
 				reassembled_file.add(data[i]);
 				new_data[j] = data[i];
 			}
-			/*
-			 * send ack for the received packet
-			 * create a header with only ack set
-			 */
 			isn_client++;
-			//byte array to store the flag
+		
 			int received_seq_num = byte_to_int(data, 3, 2, 1, 0);
-			System.out.println("&*&*&*&*&*&seq number recieved from server is : "+ received_seq_num);
+			System.out.println("Sequence number recieved from server is : "+ received_seq_num);
 			header = create_header(isn_client, received_seq_num, 'A');
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 		}
-		if(data[8] == EOF)
+		if(data[FLAG_BYTE] == EOF)
 		{
 			int i;
 			int j = 0;
@@ -244,14 +234,14 @@ public class TTPclient {
 				reassembled_file.add(data[i]);
 			}
 			isn_client++;
-	//byte array to store the flag
+			//byte array to store the flag
 			int received_seq_num = byte_to_int(data, 3, 2, 1, 0);
-			System.out.println("&*&*&*&*&*&seq number recieved from server is : "+ received_seq_num);
+			System.out.println("Sequence number recieved from server is : "+ received_seq_num);
 			header = create_header(isn_client, received_seq_num, 'A');
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 			return data;
 		}
-		if(data[8] == FILENAME)
+		if(data[FLAG_BYTE] == FILENAME)
 		{
 			int i;
 			int j = 0;
@@ -267,20 +257,20 @@ public class TTPclient {
 			System.out.println(data.toString());
 			return data;
 		}
-		else if(data[8] == 4)
+		else if(data[FLAG_BYTE] == FIN_CLOSE)
 		{
-			System.out.println("client received fin+++++++++++++++++++++");
+			System.out.println("Client received fin");
 			byte[] received_data = (byte[]) datagram.getData();
 			byte[] data_header = new byte[HEADER_SIZE];
 			int received_seq_num = byte_to_int(received_data, 3, 2, 1, 0);
 			data_header = create_header(isn_client, received_seq_num + 1, 'V');
 			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
 		}
-		else if(data[8] == 5)
+		else if(data[FLAG_BYTE] == FIN_ACK)
 		{
-			
-			System.out.println("client received FIN_ACK+++++++++++++connection closed at client");
-			while(data[8] != FIN_CLOSE)
+
+			System.out.println("Client received FIN_ACK, connection closed at client");
+			while(data[FLAG_BYTE] != FIN_CLOSE)
 			{
 				data=receive_data(src_port);
 			}
@@ -310,16 +300,13 @@ public class TTPclient {
 		byte[] temp = receive_data(src_port);
 		List<Byte> reassembled_file = new ArrayList<Byte>();
 		int i = 0;
-		/*
-		 * Loop till the Finish flag is set
-		 */
+
 		int received_seq =byte_to_int(temp, 3, 2, 1, 0);
 		last_ack = received_seq;
-		while(temp[8] != EOF && temp[8] != MD5)
+		while(temp[FLAG_BYTE] != EOF && temp[FLAG_BYTE] != MD5)
 		{
 			received_seq =byte_to_int(temp, 3, 2, 1, 0);
-			System.out.println("I got the data with seq number :" + received_seq);
-			if(temp[8]==DATA && received_seq == last_ack)
+			if(temp[FLAG_BYTE]==DATA && received_seq == last_ack)
 			{
 				timer.restart();
 				for(int l = HEADER_SIZE; l<temp.length;l++)
@@ -328,17 +315,11 @@ public class TTPclient {
 				}
 				last_ack++;
 			}
-
-			//listening for the next data packet
 			temp = receive_data(src_port);
-	//		timer.start();
-			
 		}
-		/*
-		 * Add the byte that has Finish flag set
-		 */
+
 		received_seq =byte_to_int(temp, 3, 2, 1, 0);
-		if(temp[8]==EOF && received_seq == last_ack)
+		if(temp[FLAG_BYTE]==EOF && received_seq == last_ack)
 		{
 			int l=0;
 			timer.restart();
@@ -349,11 +330,11 @@ public class TTPclient {
 			temp = receive_data(src_port);
 			last_ack++;
 		}
-		while(temp[8]!=MD5)
+		while(temp[FLAG_BYTE]!=MD5)
 		{
 			temp = receive_data(src_port);
 		}
-		if(temp[8] == MD5)
+		if(temp[FLAG_BYTE] == MD5)
 		{
 			int j = 0;
 			timer.stop();
@@ -361,11 +342,8 @@ public class TTPclient {
 			{
 				md5_value[j] = temp[i];
 			}
-			//	System.out.println("*********************Recieved MD5 = "+md5_value.toString());
 		}
-		/*
-		 * Convert the List to a Byte array 
-		 */
+
 		i=0;
 		byte[] reassembled_file_byte_array = new byte[reassembled_file.size()];
 		for(Byte current : reassembled_file)
@@ -374,19 +352,17 @@ public class TTPclient {
 			i++;
 		}
 		String reassembled_string = new String(reassembled_file_byte_array);
-		//	System.out.println("$$$$$$$$$$$received file: "+ reassembled_string);
 		MessageDigest md = MessageDigest.getInstance("MD5");
 		byte[] thedigest_c = md.digest(reassembled_file_byte_array);
 		if(Arrays.equals(md5_value, thedigest_c))
 		{
-			System.out.println("Yes they are same");
+			System.out.println("Yes the MD5 values are the are same :)");
 		}
 		else
 		{
-			System.out.println("No they are not same");
+			System.out.println("No the MD5 values are not same :( Please try again!!!");
 		}
 		last_ack++;
-		//		System.out.println("Reassembled string -> " + reassembled_string);
 		return reassembled_string;
 	}
 
@@ -398,17 +374,17 @@ public class TTPclient {
 	 * @throws ClassNotFoundException 
 	 */
 	public void connection_close() throws IOException, ClassNotFoundException, InterruptedException { 
-		byte[] header = new byte[9]; //byte array to store the flag
-		System.out.println("client sendsFIN+++++++++++++++++++++++++");
+		byte[] header = new byte[HEADER_SIZE]; //byte array to store the flag
+		System.out.println("Client sends FIN");
 		header = create_header(isn_client, last_ack, 'C'); // create a header with only ack set
 		send_data(header, dest_port, src_port, src_ip, dest_ip);
-		byte[] temp = new byte[1294+HEADER_SIZE];
+		byte[] temp = new byte[MAX_PAYLOAD+HEADER_SIZE];
 		temp =receive_data(src_port);
-		while(temp[8]!=FIN_ACK)
+		while(temp[FLAG_BYTE]!=FIN_ACK)
 		{
 			temp = receive_data(src_port);
 		}
-		
+
 	}
 
 	/**
@@ -431,21 +407,21 @@ public class TTPclient {
 		header[7] = (byte)((ack >> 24) & 0xFF);
 		switch(flag)
 		{
-		case 'S': header[8] = 0x01; 	
+		case 'S': header[FLAG_BYTE] = 0x01; /* SYN Flag */	
 		break;
-		case 'D': header[8] = 0x10;
+		case 'D': header[FLAG_BYTE] = 0x10; /* DATA Flag */	
 		break;
-		case 'A': header[8] = 0x08;
+		case 'A': header[FLAG_BYTE] = 0x08; /*ACK Flag */	
 		break;
-		case 'B': header[8] = 0x09;
+		case 'B': header[FLAG_BYTE] = 0x09; /*SYN_ACK Flag */
 		break;
-		case 'F': header[8] = 0x02;
+		case 'F': header[FLAG_BYTE] = 0x02; /*EOF Flag*/
 		break;
-		case 'E': header[8] = 0x20;
+		case 'E': header[FLAG_BYTE] = 0x20; /*FILENAME Flag */
 		break;
-		case 'C': header[8] = 0x04;
+		case 'C': header[FLAG_BYTE] = 0x04; /*FIN_CLOSE Flag */
 		break;
-		case 'V': header[8] = 0x05;
+		case 'V': header[FLAG_BYTE] = 0x05; /*FIN_ACK Flag */
 		break;
 		default: break;
 		}	

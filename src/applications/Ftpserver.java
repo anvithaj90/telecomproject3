@@ -57,9 +57,7 @@ public class Ftpserver {
 				int i;
 				int j = 0;
 				byte[] new_data = new byte[received_byte_array.length];
-				/*
-				 * converting the filename byte array into string
-				 */
+
 				for(i=HEADER_SIZE;i<received_byte_array.length;i++,j++)
 				{
 					new_data[j] = received_byte_array[i];
@@ -70,12 +68,11 @@ public class Ftpserver {
 			}
 			else if(received_byte_array[8] == ACK)
 			{
-				System.out.println("got final ack of open connection");
 				int received_ack = byte_to_int(received_byte_array,7,6,5,4);
 				Thread newThread = new Thread(new TTPSend(received_byte_array,ts,received_ack));
 				newThread.start();
 			}
-			System.out.println("received data" + received_byte_array.toString());
+			System.out.println("Received ACK");
 		}
 	}
 

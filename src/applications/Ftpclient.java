@@ -40,18 +40,18 @@ public class Ftpclient {
 		String filename;
 	    Scanner scanIn = new Scanner(System.in);
 	    filename = scanIn.nextLine();
-	   /* System.out.println("Enter the timer value : ");
+	    System.out.println("Enter the timer value : ");
 		int timer=5000;
 	    timer = scanIn.nextInt();
-	    scanIn.close();      */      
+	    scanIn.close();            
 	    
-		ts = new TTPclient();
+		ts = new TTPclient(timer);
 		ts.connection_open(String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), source_ip, destination_ip);
 		byte[] received_byte_array = ts.receive_data(String.valueOf((short)port));
 		String receivedfile = ts.send_file_name(filename,String.valueOf((short)Integer.parseInt(args[1])), String.valueOf((short)port), source_ip, destination_ip);
 	
 		byte dataToWrite[] = receivedfile.getBytes();
-		String client_file_path = new String("clientfiles/" + filename);
+		String client_file_path = new String(filename);
 		FileOutputStream out = new FileOutputStream(client_file_path);
 		BufferedOutputStream bs = new BufferedOutputStream(out);
 		bs.write(dataToWrite);

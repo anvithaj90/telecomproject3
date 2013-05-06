@@ -26,17 +26,33 @@ import datatypes.Datagram;
  */
 public class TTPServer {
 
-	private int isn_server;
+	
 	String dest_port = "2222";
 	String src_port = "4444";
 	String src_ip = "127.0.0.1";
 	String dest_ip = "127.0.0.1";
-	int window_size = 3; 
-	int nextSeqNum = 0;
-	int check = 0;
+	String payload = null;
+	private int window_size = 3; 
+	private int nextSeqNum = 0;
+	private int check = 0;
+	private int isn_server;
 	private int baseSeqNum = 0;
 	private HashMap<Integer, byte[]> file_map = new HashMap<Integer, byte[]>();
 	private int timer_value = 8000;
+	private static int MAX_PAYLOAD = 1285;
+	private static int MAX_RANDOM_NUMBER = 40000;
+	private static int HEADER_SIZE = 9;
+	private static int SYN = 1;
+	private static int FILENAME = 32;
+	private static int FIN_CLOSE = 4;
+	private static int FIN_ACK = 5;
+	private static int FLAG_BYTE = 8;
+	private static int ACK = 8;
+	byte[] payload_byte_array = new byte[MAX_PAYLOAD]; 
+	byte[] data_header = new byte[HEADER_SIZE];
+	char flag = 'S';
+	private static DatagramService ds;
+
 	public TTPServer(){
 		System.out.println("Enter the Window Size : ");
 		Scanner scanIn = new Scanner(System.in);
@@ -63,20 +79,8 @@ public class TTPServer {
 			System.out.println("TTP Server resends the data after timeout!");
 		}
 	};
-
 	Timer timer = new Timer(timer_value,resendData);
-	String payload = null;
-	byte[] payload_byte_array = new byte[1294]; 
-	byte[] data_header = new byte[9];
-	int seq_num = 0;
-	int ack = 0;
-
-	/** The flag. */
-	char flag = 'S';
-
-	/** The ds. */
-	private static DatagramService ds;
-
+	
 	/**
 	 * Send_data.
 	 *
@@ -99,8 +103,6 @@ public class TTPServer {
 		datagram.setSrcport(Short.parseShort(src_port));
 		short checksum = calculate_checksum(datagram);
 		datagram.setChecksum(checksum);
-		//	System.out.println("sent"+checksum);
-		//	System.out.println(datagram.toString());
 		ds.sendDatagram(datagram);
 	}
 
@@ -113,7 +115,6 @@ public class TTPServer {
 	private short calculate_checksum(Datagram datagram) {
 
 		// TODO Auto-generated method stub
-		//		Checksum checksum = new CRC32();  
 		byte[] buffer = (byte[])datagram.getData();
 		int length = buffer.length;
 		int i = 0;
@@ -125,10 +126,6 @@ public class TTPServer {
 			--length;
 		}
 		return (short) ((~((sum & 0xFFFF)+(sum >> 16)))&0xFFFF);
-
-		/*		checksum.update(d,0,(int)d.length);   
-		short value = (short) checksum.getValue(); //this is the real checksum
-		return value;*/		
 	}
 
 	/**
@@ -146,77 +143,66 @@ public class TTPServer {
 		Datagram datagram = new Datagram();
 		datagram = ds.receiveDatagram();
 
-		byte[] data = (byte[]) datagram.getData();	//data from the datagram
-		byte[] data1 = new byte[1294]; //byte array for data
-		byte[] temp = new byte[1294+9];
-		//	System.out.println("received checksum = "+checksum+"flag = "+data[4]);
-		if(data[8] == 1)
+		byte[] data = (byte[]) datagram.getData();	
+		byte[] temp = new byte[MAX_PAYLOAD+HEADER_SIZE];
+		if(data[FLAG_BYTE] == SYN)
 		{
-			/* Generate a random number for the other side and set the 
-			 * flag to SYN and ACK i.e. B. Get the source and the destination IP
-			 * and port addresses and call send_data to send the SYN-ACK packet.
-			 *  Increment the syn value of the prev  and 
-			 */
 			Random r = new Random();
-			isn_server = r.nextInt(40000);
+			isn_server = r.nextInt(MAX_RANDOM_NUMBER);
 			nextSeqNum = isn_server;
 			baseSeqNum = isn_server;
 			check = isn_server;
-			byte[] header = new byte[9]; //byte array to store the flag
-			int received_seq_num = (int)(header[0] | header[1] << 8 | header[2] << 16| header[3] << 24);
-			header = create_header(nextSeqNum, 0, 'B'); // create a header with both syn and ack set
-
-			String dest_port;
-			String src_port;
-			String src_ip;
-			String dest_ip;
+			byte[] header = new byte[HEADER_SIZE]; 
+			byte_to_int(header,3,2,1,0);
+			header = create_header(nextSeqNum, 0, 'B'); 
 			dest_ip = datagram.getSrcaddr();
 			src_ip = datagram.getDstaddr();
 			dest_port = String.valueOf(datagram.getSrcport());
 			src_port = String.valueOf(datagram.getDstport());
 			send_data(header, dest_port, src_port, src_ip, dest_ip);
 		}
-
-		else if(data[8] == 8)
+		else if(data[FLAG_BYTE] == ACK)
 		{
-
 			byte[] received_data = (byte[]) datagram.getData();
-			//	int received_seq_num = received_data[3] << 24 | (received_data[2] & 0xFF) << 16 | (received_data[1] & 0xFF) << 8 | (received_data[0] & 0xFF);
 			return received_data;
 		}
-		else if(data[8] == 32)
+		else if(data[FLAG_BYTE] == FILENAME)
 		{
 			return data;
 		}
-		else if(data[8] == 4)
+		else if(data[FLAG_BYTE] == FIN_CLOSE)
 		{
-			System.out.println("server received FIN_CLOSE");
+			System.out.println("Server received FIN_CLOSE");
 			byte[] received_data = (byte[]) datagram.getData();
-			int received_seq_num = (int)(received_data[0] | received_data[1] << 8 | received_data[2] << 16| received_data[3] << 24);
-			System.out.println("server sends FIN_ACK++++++++++++++++++++++++");
+			int received_seq_num = byte_to_int(received_data, 3, 2, 1, 0);
+			System.out.println("Server sends FIN_ACK");
 			data_header = create_header(isn_server, received_seq_num + 1, 'V');
 			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
 
 			isn_server++;
 
-			System.out.println("server sends FIN_close++++++++");
+			System.out.println("Server sends FIN_CLOSE");
 			data_header = create_header(isn_server, received_seq_num + 1, 'C');
 			send_data(data_header, dest_port, src_port, src_ip, dest_ip);
 
 			temp =receive_data(src_port);
-			while(temp[8]!=5)
+			while(temp[FLAG_BYTE]!=FIN_ACK)
 			{
 				temp = receive_data(src_port);
 			}
-
 		}
-		if(temp[8] == 5)
+		if(temp[FLAG_BYTE] == FIN_ACK)
 		{
-	//		file_map.clear();
-
-			System.out.println("server receeived FIN_ACK connection closed at server");
+			file_map.clear();
+			System.out.println("Server received FIN_ACK connection closed at server");
 		}
 		return data;
+	}
+
+	private int byte_to_int(byte[] header, int i, int j, int k, int l) {
+		// TODO Auto-generated method stub
+		int value = header[i] << 24 | (header[j] & 0xFF) << 16 | (header[k] & 0xFF) << 8 | (header[l] & 0xFF);
+		return value;
 	}
 
 	/**
@@ -239,7 +225,7 @@ public class TTPServer {
 
 				if(file_map.containsKey(seq_num-1))
 				{
-					System.out.println("removing from hashmap:" + (seq_num-1));
+					System.out.println("Removing from hashmap:" + (seq_num-1));
 					timer.stop();
 					file_map.remove(seq_num-1);	
 					System.out.println("Now the Hash Map is:");
@@ -257,10 +243,9 @@ public class TTPServer {
 				for(i=0;i<window_size;i++){
 					if(nextSeqNum <= baseSeqNum + window_size)
 					{
-
 						if(file_map.containsKey(nextSeqNum))
 						{
-							System.out.println("the message i am sending is : " + nextSeqNum);
+							System.out.println("The window now includes : " + nextSeqNum);
 							send_data(file_map.get(nextSeqNum),  dest_port, src_port, src_ip, dest_ip);
 							if(baseSeqNum == nextSeqNum)
 								timer.start();
@@ -275,22 +260,18 @@ public class TTPServer {
 		{
 
 			String broken_payload = new String(data_full);
-			int rem = broken_payload.length()%1285;
+			int rem = broken_payload.length()%MAX_PAYLOAD;
 			if(rem == 0)
 				rem+=1285;
 			int i;
-			int received_seq_num =(int) ( data_full[0] | data_full[1] << 8| data_full[3] << 16| data_full[4] << 24 );
+			int received_seq_num =byte_to_int(data_full, 3, 2, 1, 0);
 			for(i=0;i<data_full.length-1285;i+=1285){
-				byte[] combined = new byte[1294];
+				byte[] combined = new byte[MAX_PAYLOAD+HEADER_SIZE];
 				data_header = create_header(nextSeqNum, received_seq_num+1 , 'D');
-				payload_byte_array = create_payload(broken_payload.substring(i, i+1285));
-
+				payload_byte_array = create_payload(broken_payload.substring(i, i+MAX_PAYLOAD));
 
 				System.arraycopy(data_header, 0, combined, 0, data_header.length);
 				System.arraycopy(payload_byte_array, 0, combined, data_header.length, payload_byte_array.length);
-				/*
-				 * put the fragmented data into the Hash map
-				 */
 				add_to_hashmap(nextSeqNum, combined);
 				nextSeqNum++;
 			}
@@ -308,7 +289,7 @@ public class TTPServer {
 
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			byte[] thedigest = md.digest(data_full);
-			String temp5 = new String(data_full); 
+			new String(data_full); 
 
 			byte[] combined_md5 = new byte[data_header.length + thedigest.length];
 			System.arraycopy(data_header, 0, combined_md5, 0, data_header.length);
@@ -322,13 +303,9 @@ public class TTPServer {
 				System.out.print(me.getKey() + " : ");
 				System.out.println(me.getValue());
 			}
-
-
 			nextSeqNum = check;
-			for(i=0;i<data_full.length-1285;i+=1285){
+			for(i=0;i<data_full.length-MAX_PAYLOAD;i+=MAX_PAYLOAD){
 				if( nextSeqNum < baseSeqNum + window_size){
-					System.out.println("I am sending before ack with this :" + nextSeqNum);
-
 					send_data(file_map.get(nextSeqNum),  dest_port, src_port, src_ip, dest_ip);
 					if(baseSeqNum == nextSeqNum)
 						timer.start();
@@ -359,21 +336,21 @@ public class TTPServer {
 		header[7] = (byte)((ack >> 24) & 0xFF);
 		switch(flag)
 		{
-		case 'S': header[8] = 0x01; 	
+		case 'S': header[FLAG_BYTE] = 0x01; /* SYN Flag */		
 		break;
-		case 'D': header[8] = 0x10;
+		case 'D': header[FLAG_BYTE] = 0x10; /* DATA Flag */	
 		break;
-		case 'A': header[8] = 0x08;
+		case 'A': header[FLAG_BYTE] = 0x08; /*ACK Flag */	
 		break;
-		case 'B': header[8] = 0x09;
+		case 'B': header[FLAG_BYTE] = 0x09; /*SYN_ACK Flag */
 		break;
-		case 'F': header[8] = 0x02;
+		case 'F': header[FLAG_BYTE] = 0x02; /*EOF Flag*/
 		break;
-		case 'M': header[8] = 0x40;
+		case 'M': header[FLAG_BYTE] = 0x40; /*MD5 Flag*/
 		break;
-		case 'C': header[8] = 0x04;
+		case 'C': header[FLAG_BYTE] = 0x04; /*FIN_CLOSE Flag */
 		break;
-		case 'V': header[8] = 0x05;
+		case 'V': header[FLAG_BYTE] = 0x05; /*FIN_ACK Flag */
 		break;
 		default: break;
 		}	
